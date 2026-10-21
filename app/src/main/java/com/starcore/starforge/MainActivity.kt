@@ -81,27 +81,27 @@ enum class AppTheme(val label: String, val accent: Color) {
 // Constantes y SharedPreferences
 // ─────────────────────────────────────────────────────────────────────────────
 
-private const val PREFS_NAME = "starforge_prefs"
-private const val K_NAME = "user_name"
-private const val K_AGE = "user_age"
-private const val K_MISSION = "user_mission"
-private const val K_THEME = "theme"
-private const val K_XP = "xp"
-private const val K_HABITS = "habits_json"
-private const val K_COMPLETIONS = "completions_json"
-private const val K_MIN_COMPLETIONS = "min_completions_json"
-private const val K_FOCUS_LOG = "focus_log_json"
-private const val K_FOCUS_MIN = "focus_minutes"
-private const val K_FOCUS_END = "focus_end_at"
-private const val K_UNLOCKED = "unlocked_badges_json"
-private const val K_NOTES = "notes_json"
-private const val K_CATEGORY_XP = "category_xp_json"
+private val PREFS_NAME = "starforge_prefs"
+private val K_NAME = "user_name"
+private val K_AGE = "user_age"
+private val K_MISSION = "user_mission"
+private val K_THEME = "theme"
+private val K_XP = "xp"
+private val K_HABITS = "habits_json"
+private val K_COMPLETIONS = "completions_json"
+private val K_MIN_COMPLETIONS = "min_completions_json"
+private val K_FOCUS_LOG = "focus_log_json"
+private val K_FOCUS_MIN = "focus_minutes"
+private val K_FOCUS_END = "focus_end_at"
+private val K_UNLOCKED = "unlocked_badges_json"
+private val K_NOTES = "notes_json"
+private val K_CATEGORY_XP = "category_xp_json"
 
-private const val XP_PER_HABIT = 10
-private const val XP_PER_MIN_HABIT = 4
-private const val XP_PER_FOCUS_MINUTE = 2
-private const val XP_PER_LEVEL = 100
-private const val DEFAULT_MISSION = "Forjar disciplina cada día y convertirme en mi mejor versión."
+private val XP_PER_HABIT = 10
+private val XP_PER_MIN_HABIT = 4
+private val XP_PER_FOCUS_MINUTE = 2
+private val XP_PER_LEVEL = 100
+private val DEFAULT_MISSION = "Forjar disciplina cada día y convertirme en mi mejor versión."
 
 private val FOCUS_OPTIONS = listOf(15, 25, 45, 60)
 private val DAYS_SHORT = listOf("L", "M", "X", "J", "V", "S", "D")
@@ -958,7 +958,7 @@ private fun WeekStrip(store: StarforgeStore) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pantalla de Inicio (Con Misión Semanal y Forge Path)
+// Pantalla de Inicio (Con Misión Semanal y Ámbito Corregido)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -1014,13 +1014,13 @@ private fun HomeScreen(store: StarforgeStore) {
 
         // Misión Semanal Dinámica
         AppCard {
+            val checkInsThisWeek = store.totalCheckIns().coerceAtMost(10)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("🎯 Misión de la Semana", color = accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(4.dp))
                     Text("Completa 10 check-ins esta semana", color = TextMain, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(8.dp))
-                    val checkInsThisWeek = store.totalCheckIns().coerceAtMost(10)
                     BarProgress(checkInsThisWeek / 10f, accent, height = 6.dp)
                 }
                 Spacer(Modifier.width(12.dp))
@@ -1097,7 +1097,7 @@ private fun HomeScreen(store: StarforgeStore) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pantalla de Hábitos (Con Versión Mínima y Categorías)
+// Pantalla de Hábitos
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -1201,7 +1201,6 @@ private fun HabitRow(
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Check normal
         Box(
             Modifier
                 .size(28.dp)
@@ -1229,7 +1228,6 @@ private fun HabitRow(
                 }
             }
         }
-        // Botón Versión Mínima de Resiliencia
         if (habit.minVersion.isNotBlank() && !done) {
             Box(
                 Modifier
@@ -1335,7 +1333,7 @@ private fun AddHabitDialog(onDismiss: () -> Unit, onAdd: (String, List<Int>, Str
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pantalla de Enfoque (Pomodoro)
+// Pantalla de Enfoque
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -1373,7 +1371,7 @@ private fun FocusScreen(store: StarforgeStore) {
             Ring(progress = progress, color = accent, diameter = 250.dp, stroke = 14.dp) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("%02d:%02d".format(secs / 60, secs % 60), color = TextMain, fontSize = 52.sp, fontWeight = FontWeight.Bold)
-                    Text(if (running) "Enfocado…" else "Listo para empezar", color = TextMuted, fontSize = 13.sp)
+                    Text(if (running) "Enفocado…" else "Listo para empezar", color = TextMuted, fontSize = 13.sp)
                 }
             }
         }
@@ -1406,7 +1404,7 @@ private fun FocusScreen(store: StarforgeStore) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pantalla de Perfil (Con Forge Path / Árbol de Evolución)
+// Pantalla de Perfil (Con Forge Path)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
