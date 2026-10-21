@@ -1,100 +1,43 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package com.starcore.starforge
 
+/*
+ * Starforge — disciplina, hábitos y superación personal.
+ *
+ * Una sola actividad · Jetpack Compose + Material 3 · SharedPreferences.
+ *
+ * Pestañas: Inicio · Hábitos · Enfoque · Progreso (Estadísticas + Logros) · Perfil
+ */
+
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Shapes
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.Typography
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -102,1427 +45,1735 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.Calendar
-import java.util.Locale
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.YearMonth
+import kotlin.math.roundToInt
 
-// =====================================================================
-//  PALETA STARFORGE
-// =====================================================================
-private val Ink = Color(0xFF0F1115)          
-private val Navy = Color(0xFF1A2B4C)         
-private val NavyDeep = Color(0xFF111D36)     
-private val Slate = Color(0xFF3C3F46)        
-private val Gold = Color(0xFFF4C430)         
-private val OnDark = Color(0xFFF1F5F9)
-private val OnDarkMuted = Color(0xFFA9B3C6)
-private val Hairline = Color(0xFF3B4658)
-private val DangerRed = Color(0xFFFF6B6B)
+// ─────────────────────────────────────────────────────────────────────────────
+// Paleta y temas de acento
+// ─────────────────────────────────────────────────────────────────────────────
 
-private data class ThemeOption(val name: String, val color: Color)
+private val Ink = Color(0xFF0F1115)
+private val Navy = Color(0xFF1A2B4C)
+private val Slate = Color(0xFF3C3F46)
+private val Gold = Color(0xFFF4C430)
+private val Sapphire = Color(0xFF4C8DFF)
+private val Emerald = Color(0xFF2ED8A3)
+private val TextMain = Color(0xFFF1F3F7)
+private val TextMuted = Color(0xFFA3AAB8)
 
-private val THEMES = listOf(
-    ThemeOption("Oro", Gold),
-    ThemeOption("Zafiro", Color(0xFF6EA8FF)),
-    ThemeOption("Esmeralda", Color(0xFF3DDC97))
-)
+enum class AppTheme(val label: String, val accent: Color) {
+    GOLD("Oro", Gold),
+    SAPPHIRE("Zafiro", Sapphire),
+    EMERALD("Esmeralda", Emerald)
+}
 
-private const val XP_HABIT = 10
+// ─────────────────────────────────────────────────────────────────────────────
+// Constantes
+// ─────────────────────────────────────────────────────────────────────────────
+
+private const val PREFS_NAME = "starforge_prefs"
+private const val K_NAME = "user_name"
+private const val K_AGE = "user_age"
+private const val K_MISSION = "user_mission"
+private const val K_THEME = "theme"
+private const val K_XP = "xp"
+private const val K_HABITS = "habits_json"
+private const val K_COMPLETIONS = "completions_json"
+private const val K_FOCUS_LOG = "focus_log_json"
+private const val K_FOCUS_MIN = "focus_minutes"
+private const val K_FOCUS_END = "focus_end_at"
+private const val K_UNLOCKED = "unlocked_badges_json"
+
+private const val XP_PER_HABIT = 10
+private const val XP_PER_FOCUS_MINUTE = 2
 private const val XP_PER_LEVEL = 100
+private const val DEFAULT_MISSION = "Forjar disciplina cada día y convertirme en mi mejor versión."
 
+private val FOCUS_OPTIONS = listOf(15, 25, 45, 60)
+private val DAYS_SHORT = listOf("L", "M", "X", "J", "V", "S", "D")
+private val DAYS_FULL = listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")
+private val MONTHS_ES = listOf(
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+)
 private val QUOTES = listOf(
-    "La disciplina de hoy es la libertad de mañana.",
-    "No esperes motivación: construye el hábito y la motivación te seguirá.",
-    "Los pequeños pasos de cada día superan a los grandes planes que nunca empiezan.",
-    "Eres el resultado de lo que repites. Repite algo grande.",
-    "Hoy no tiene que ser perfecto, solo tiene que contar.",
-    "Cuando se ponga difícil, recuerda por qué empezaste.",
-    "La constancia silenciosa vence al talento que se rinde.",
-    "Cada hábito cumplido es un voto por la persona que quieres ser.",
-    "Enfócate en el siguiente paso, no en toda la escalera.",
-    "Tu futuro se decide en lo que haces cuando nadie mira.",
-    "Hazlo con calma, pero hazlo hoy.",
-    "Mejorar un 1 % cada día cambia por completo un año.",
-    "La fuerza no está en no caer, sino en levantarte una vez más.",
-    "Lo difícil de hoy será tu normalidad de mañana."
+    "Cada día que cumples contigo mismo forja a la persona que quieres ser.",
+    "La constancia silenciosa vence al talento que se distrae.",
+    "No esperes motivación: construye el hábito y ella te alcanzará.",
+    "Un paso pequeño hoy pesa más que un plan perfecto mañana.",
+    "Tu futuro se escribe con lo que repites, no con lo que prometes.",
+    "La disciplina es una forma de respeto hacia tu yo del futuro.",
+    "Forja tu mejor versión: un hábito a la vez."
 )
 
-// =====================================================================
-//  TEMA MATERIAL 3
-// =====================================================================
-private val AppTypography = Typography(
-    headlineLarge = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold, fontSize = 32.sp, lineHeight = 38.sp, letterSpacing = (-0.5).sp),
-    headlineMedium = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, fontSize = 26.sp, lineHeight = 32.sp, letterSpacing = (-0.3).sp),
-    titleLarge = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 26.sp),
-    titleMedium = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Medium, fontSize = 17.sp, lineHeight = 24.sp),
-    bodyLarge = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 24.sp),
-    bodyMedium = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 20.sp),
-    labelLarge = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, letterSpacing = 0.2.sp)
+// ─────────────────────────────────────────────────────────────────────────────
+// Modelos
+// ─────────────────────────────────────────────────────────────────────────────
+
+data class Habit(val id: Long, val name: String, val created: String)
+
+enum class BadgeCategory(val label: String, val emoji: String, val unit: String) {
+    STREAK("Rachas", "🔥", "días"),
+    XP("Experiencia", "⭐", "XP"),
+    FOCUS("Enfoque", "🎯", "sesiones"),
+    HABITS("Hábitos", "✅", "check-ins")
+}
+
+data class Achievement(
+    val id: String,
+    val emoji: String,
+    val title: String,
+    val description: String,
+    val category: BadgeCategory,
+    val target: Int
 )
 
-private val AppShapes = Shapes(
-    extraSmall = RoundedCornerShape(10.dp),
-    small = RoundedCornerShape(14.dp),
-    medium = RoundedCornerShape(20.dp),
-    large = RoundedCornerShape(26.dp),
-    extraLarge = RoundedCornerShape(32.dp)
+data class Metrics(
+    val currentStreak: Int,
+    val bestStreak: Int,
+    val xp: Int,
+    val sessions: Int,
+    val checkIns: Int
+) {
+    fun valueFor(category: BadgeCategory): Int = when (category) {
+        BadgeCategory.STREAK -> bestStreak
+        BadgeCategory.XP -> xp
+        BadgeCategory.FOCUS -> sessions
+        BadgeCategory.HABITS -> checkIns
+    }
+}
+
+data class MonthStats(
+    val month: YearMonth,
+    val dayRates: List<Float?>,
+    val completed: Int,
+    val scheduled: Int,
+    val successRate: Int,
+    val activeDays: Int,
+    val elapsedDays: Int,
+    val consistency: Int,
+    val perfectDays: Int,
+    val bestRun: Int,
+    val focusSessions: Int,
+    val focusMinutes: Int,
+    val bestWeekday: Int
 )
 
-@Composable
-private fun StarforgeTheme(accent: Color, content: @Composable () -> Unit) {
-    val scheme = darkColorScheme(
-        primary = accent,
-        onPrimary = Ink,
-        primaryContainer = Navy,
-        onPrimaryContainer = OnDark,
-        secondary = accent,
-        onSecondary = Ink,
-        secondaryContainer = Slate,
-        onSecondaryContainer = OnDark,
-        background = Ink,
-        onBackground = OnDark,
-        surface = Ink,
-        onSurface = OnDark,
-        surfaceVariant = Slate,
-        onSurfaceVariant = OnDarkMuted,
-        outline = Hairline,
-        error = DangerRed
-    )
-    MaterialTheme(colorScheme = scheme, typography = AppTypography, shapes = AppShapes, content = content)
-}
+val ACHIEVEMENTS: List<Achievement> = listOf(
+    Achievement("streak_3", "🔥", "Chispa", "Racha de 3 días seguidos", BadgeCategory.STREAK, 3),
+    Achievement("streak_7", "⚡", "Semana de Fuego", "Racha de 7 días seguidos", BadgeCategory.STREAK, 7),
+    Achievement("streak_14", "🛡️", "Voluntad de Acero", "Racha de 14 días seguidos", BadgeCategory.STREAK, 14),
+    Achievement("streak_30", "👑", "Maestro de la Constancia", "Racha de 30 días seguidos", BadgeCategory.STREAK, 30),
+    Achievement("streak_60", "🏆", "Leyenda Imparable", "Racha de 60 días seguidos", BadgeCategory.STREAK, 60),
+    Achievement("xp_100", "✨", "Primer Destello", "Acumula 100 XP", BadgeCategory.XP, 100),
+    Achievement("xp_500", "🌟", "Aprendiz Forjador", "Acumula 500 XP", BadgeCategory.XP, 500),
+    Achievement("xp_1000", "💎", "Cristal de Voluntad", "Acumula 1.000 XP", BadgeCategory.XP, 1000),
+    Achievement("xp_2500", "🚀", "Ascenso Estelar", "Acumula 2.500 XP", BadgeCategory.XP, 2500),
+    Achievement("xp_5000", "🌌", "Forjador de Estrellas", "Acumula 5.000 XP", BadgeCategory.XP, 5000),
+    Achievement("focus_1", "🎯", "Primer Enfoque", "Completa 1 sesión de enfoque", BadgeCategory.FOCUS, 1),
+    Achievement("focus_5", "🧠", "Mente Clara", "Completa 5 sesiones de enfoque", BadgeCategory.FOCUS, 5),
+    Achievement("focus_10", "⏳", "Dueño del Tiempo", "Completa 10 sesiones de enfoque", BadgeCategory.FOCUS, 10),
+    Achievement("focus_25", "🧘", "Monje Digital", "Completa 25 sesiones de enfoque", BadgeCategory.FOCUS, 25),
+    Achievement("focus_50", "🔮", "Concentración Absoluta", "Completa 50 sesiones de enfoque", BadgeCategory.FOCUS, 50),
+    Achievement("habit_1", "✅", "Primer Paso", "Marca tu primer hábito", BadgeCategory.HABITS, 1),
+    Achievement("habit_25", "📈", "En Marcha", "Completa 25 hábitos", BadgeCategory.HABITS, 25),
+    Achievement("habit_100", "💪", "Centenario", "Completa 100 hábitos", BadgeCategory.HABITS, 100),
+    Achievement("habit_250", "🏅", "Hábito de Hierro", "Completa 250 hábitos", BadgeCategory.HABITS, 250),
+    Achievement("habit_500", "🌠", "Imparable", "Completa 500 hábitos", BadgeCategory.HABITS, 500)
+)
 
-// =====================================================================
-//  FECHAS
-// =====================================================================
-private object Dates {
-    private val WEEKDAYS_SHORT = listOf("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom")
-    private val WEEKDAYS_LONG = listOf("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
-    private val MONTHS = listOf("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre")
+// ─────────────────────────────────────────────────────────────────────────────
+// Estado + persistencia (SharedPreferences)
+// ─────────────────────────────────────────────────────────────────────────────
 
-    fun keyOf(cal: Calendar): String = String.format(Locale.US, "%04d-%02d-%02d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH))
-    fun keyOf(millis: Long): String = keyOf(Calendar.getInstance().apply { timeInMillis = millis })
-    fun today(): String = keyOf(Calendar.getInstance())
+class StarforgeStore(private val prefs: SharedPreferences) {
 
-    fun parse(key: String): Calendar {
-        val p = key.split("-")
-        return Calendar.getInstance().apply {
-            clear()
-            set(p[0].toInt(), p[1].toInt() - 1, p[2].toInt(), 12, 0, 0)
-        }
-    }
+    var userName by mutableStateOf(prefs.getString(K_NAME, "Juan") ?: "Juan")
+        private set
+    var userAge by mutableStateOf(prefs.getString(K_AGE, "18") ?: "18")
+        private set
+    var mission by mutableStateOf(prefs.getString(K_MISSION, DEFAULT_MISSION) ?: DEFAULT_MISSION)
+        private set
+    var theme by mutableStateOf(loadTheme())
+        private set
+    var xp by mutableStateOf(prefs.getInt(K_XP, 0))
+        private set
 
-    fun addDays(key: String, days: Int): String {
-        val cal = parse(key)
-        cal.add(Calendar.DAY_OF_YEAR, days)
-        return keyOf(cal)
-    }
+    var focusMinutes by mutableStateOf(prefs.getInt(K_FOCUS_MIN, 25))
+        private set
+    var focusEndAt by mutableStateOf<Long?>(prefs.getLong(K_FOCUS_END, 0L).takeIf { it > 0L })
+        private set
+    var focusRemainingMs by mutableStateOf(focusMinutes * 60_000L)
 
-    fun weekdayIndex(key: String): Int = (parse(key).get(Calendar.DAY_OF_WEEK) + 5) % 7
-    fun weekStart(key: String): String = addDays(key, -weekdayIndex(key))
-    fun dayOfMonth(key: String): Int = parse(key).get(Calendar.DAY_OF_MONTH)
-    fun monthShort(key: String): String = MONTHS[parse(key).get(Calendar.MONTH)].take(3)
-    fun weekdayShort(key: String): String = WEEKDAYS_SHORT[weekdayIndex(key)]
-    fun weekdayLong(key: String): String = WEEKDAYS_LONG[weekdayIndex(key)]
-
-    fun formatLong(key: String): String {
-        val cal = parse(key)
-        val text = "${weekdayLong(key)} ${cal.get(Calendar.DAY_OF_MONTH)} de ${MONTHS[cal.get(Calendar.MONTH)]}"
-        return text.replaceFirstChar { it.uppercase() }
-    }
-
-    fun dayOfYear(): Int = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
-
-    fun greeting(): String {
-        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-        return when {
-            hour < 12 -> "Buenos días"
-            hour < 20 -> "Buenas tardes"
-            else -> "Buenas noches"
-        }
-    }
-}
-
-private fun formatClock(ms: Long): String {
-    val totalSeconds = ((ms + 999L) / 1000L).coerceAtLeast(0L)
-    return String.format(Locale.US, "%02d:%02d", totalSeconds / 60, totalSeconds % 60)
-}
-
-// =====================================================================
-//  MODELO Y ESTADO
-// =====================================================================
-private data class Habit(val id: Long, val name: String, val doneDates: Set<String>)
-
-private fun streakOf(habit: Habit, today: String): Int {
-    var cursor = if (today in habit.doneDates) today else Dates.addDays(today, -1)
-    var count = 0
-    while (cursor in habit.doneDates) {
-        count++
-        cursor = Dates.addDays(cursor, -1)
-    }
-    return count
-}
-
-private class AppState(context: Context) {
-    private val prefs = context.getSharedPreferences("starforge_prefs", Context.MODE_PRIVATE)
+    var selectedDate by mutableStateOf(LocalDate.now())
+    var toast by mutableStateOf<String?>(null)
 
     val habits = mutableStateListOf<Habit>()
-    var today by mutableStateOf(Dates.today())
+    val completions = mutableStateMapOf<String, Set<Long>>()
+    val focusLog = mutableStateMapOf<String, List<Int>>()
+    val unlocked = mutableStateMapOf<String, String>()
 
-    var userName by mutableStateOf("Juan")
-    var userAge by mutableStateOf(18)
-    var mission by mutableStateOf(DEFAULT_MISSION)
-    var themeIndex by mutableStateOf(0)
-    var xp by mutableStateOf(0)
+    init {
+        if (prefs.contains(K_HABITS)) {
+            habits.addAll(loadHabits())
+        } else {
+            val today = LocalDate.now().toString()
+            habits.add(Habit(1L, "Beber 2 litros de agua", today))
+            habits.add(Habit(2L, "Leer 10 páginas", today))
+            habits.add(Habit(3L, "Ejercicio 20 minutos", today))
+            saveHabits()
+        }
+        completions.putAll(loadCompletions())
+        focusLog.putAll(loadFocusLog())
+        unlocked.putAll(loadUnlocked())
+        evaluateBadges()
+    }
 
-    var focusMinutes by mutableStateOf(25)
-    var timerEndAt by mutableStateOf(0L)        
-    var timerPausedMs by mutableStateOf(0L)     
-    var focusSessions by mutableStateOf(0)
-    var focusTotalMinutes by mutableStateOf(0)
-    var lastReward by mutableStateOf(0)         
-    var nowMs by mutableStateOf(System.currentTimeMillis())
-
-    val isIdle: Boolean get() = timerEndAt == 0L && timerPausedMs == 0L
     val level: Int get() = xp / XP_PER_LEVEL + 1
     val xpInLevel: Int get() = xp % XP_PER_LEVEL
 
-    init { load() }
-
-    private fun load() {
-        userName = prefs.getString(K_NAME, "Juan") ?: "Juan"
-        userAge = prefs.getInt(K_AGE, 18)
-        mission = prefs.getString(K_MISSION, DEFAULT_MISSION) ?: DEFAULT_MISSION
-        themeIndex = prefs.getInt(K_THEME, 0).coerceIn(0, THEMES.lastIndex)
-        xp = prefs.getInt(K_XP, 0)
-        focusMinutes = prefs.getInt(K_FOCUS_MIN, 25)
-        timerEndAt = prefs.getLong(K_TIMER_END, 0L)
-        timerPausedMs = prefs.getLong(K_TIMER_PAUSED, 0L)
-        focusSessions = prefs.getInt(K_FOCUS_SESSIONS, 0)
-        focusTotalMinutes = prefs.getInt(K_FOCUS_TOTAL, 0)
-        habits.clear()
-        habits.addAll(readHabits())
+    fun updateName(value: String) {
+        userName = value.take(24)
+        prefs.edit().putString(K_NAME, userName).apply()
     }
 
-    private fun readHabits(): List<Habit> = try {
-        val arr = JSONArray(prefs.getString(K_HABITS, "[]") ?: "[]")
-        (0 until arr.length()).map { i ->
-            val o = arr.getJSONObject(i)
-            val doneArr = o.optJSONArray("done")
-            val dates: Set<String> = if (doneArr == null) emptySet() else (0 until doneArr.length()).map { doneArr.getString(it) }.toSet()
-            Habit(o.getLong("id"), o.getString("name"), dates)
+    fun updateAge(value: String) {
+        if (value.length <= 2 && value.all { it.isDigit() }) {
+            userAge = value
+            prefs.edit().putString(K_AGE, userAge).apply()
         }
-    } catch (e: Exception) { emptyList() }
+    }
+
+    fun updateMission(value: String) {
+        mission = value.take(140)
+        prefs.edit().putString(K_MISSION, mission).apply()
+    }
+
+    fun updateTheme(value: AppTheme) {
+        theme = value
+        prefs.edit().putString(K_THEME, value.name).apply()
+    }
+
+    fun habitsFor(date: LocalDate): List<Habit> {
+        val key = date.toString()
+        return habits.filter { it.created <= key }
+    }
+
+    fun isDone(habitId: Long, date: LocalDate): Boolean =
+        completions[date.toString()]?.contains(habitId) == true
+
+    fun doneCount(date: LocalDate): Int = completions[date.toString()]?.size ?: 0
+
+    fun canEdit(date: LocalDate): Boolean = !date.isAfter(LocalDate.now())
+
+    fun addHabit(name: String) {
+        val clean = name.trim().take(40)
+        if (clean.isEmpty()) return
+        var id = System.currentTimeMillis()
+        while (habits.any { it.id == id }) id++
+        habits.add(Habit(id, clean, LocalDate.now().toString()))
+        saveHabits()
+    }
+
+    fun deleteHabit(habit: Habit) {
+        habits.removeAll { it.id == habit.id }
+        for (key in completions.keys.toList()) {
+            val ids = completions[key] ?: continue
+            if (habit.id in ids) {
+                val next = ids - habit.id
+                if (next.isEmpty()) completions.remove(key) else completions[key] = next
+            }
+        }
+        saveHabits()
+        saveCompletions()
+    }
+
+    fun toggleHabit(habit: Habit, date: LocalDate) {
+        if (!canEdit(date)) return
+        val key = date.toString()
+        val current = completions[key] ?: emptySet()
+        if (habit.id in current) {
+            val next = current - habit.id
+            if (next.isEmpty()) completions.remove(key) else completions[key] = next
+            changeXp(-XP_PER_HABIT)
+        } else {
+            completions[key] = current + habit.id
+            changeXp(XP_PER_HABIT)
+        }
+        saveCompletions()
+        evaluateBadges()
+    }
+
+    private fun changeXp(delta: Int) {
+        xp = (xp + delta).coerceAtLeast(0)
+        prefs.edit().putInt(K_XP, xp).apply()
+    }
+
+    fun selectFocusMinutes(minutes: Int) {
+        if (focusEndAt != null) return
+        focusMinutes = minutes
+        focusRemainingMs = minutes * 60_000L
+        saveFocusTimer()
+    }
+
+    fun startFocus() {
+        if (focusEndAt != null) return
+        focusEndAt = System.currentTimeMillis() + focusMinutes * 60_000L
+        saveFocusTimer()
+    }
+
+    fun cancelFocus() {
+        focusEndAt = null
+        focusRemainingMs = focusMinutes * 60_000L
+        saveFocusTimer()
+    }
+
+    fun finishFocus() {
+        val minutes = focusMinutes
+        focusEndAt = null
+        focusRemainingMs = minutes * 60_000L
+        saveFocusTimer()
+
+        val key = LocalDate.now().toString()
+        focusLog[key] = (focusLog[key] ?: emptyList()) + minutes
+        saveFocusLog()
+        val gained = minutes * XP_PER_FOCUS_MINUTE
+        changeXp(gained)
+        toast = "🎯 Sesión de $minutes min completada · +$gained XP"
+        evaluateBadges()
+    }
+
+    fun sessionsOn(date: LocalDate): Int = focusLog[date.toString()]?.size ?: 0
+    fun minutesOn(date: LocalDate): Int = focusLog[date.toString()]?.sum() ?: 0
+    fun totalSessions(): Int = focusLog.values.sumOf { it.size }
+    fun totalFocusMinutes(): Int = focusLog.values.sumOf { it.sum() }
+
+    fun currentStreak(): Int {
+        val today = LocalDate.now()
+        var day = if (completions.containsKey(today.toString())) today else today.minusDays(1)
+        var count = 0
+        while (completions.containsKey(day.toString())) {
+            count++
+            day = day.minusDays(1)
+        }
+        return count
+    }
+
+    fun bestStreak(): Int {
+        val dates = completions.keys
+            .mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }
+            .sorted()
+        var best = 0
+        var run = 0
+        var prev: LocalDate? = null
+        for (d in dates) {
+            run = if (prev != null && prev.plusDays(1) == d) run + 1 else 1
+            if (run > best) best = run
+            prev = d
+        }
+        return best
+    }
+
+    fun totalCheckIns(): Int = completions.values.sumOf { it.size }
+
+    fun metrics(): Metrics = Metrics(
+        currentStreak = currentStreak(),
+        bestStreak = bestStreak(),
+        xp = xp,
+        sessions = totalSessions(),
+        checkIns = totalCheckIns()
+    )
+
+    private fun evaluateBadges() {
+        val m = metrics()
+        val newly = ACHIEVEMENTS.filter {
+            !unlocked.containsKey(it.id) && m.valueFor(it.category) >= it.target
+        }
+        if (newly.isEmpty()) return
+        val today = LocalDate.now().toString()
+        newly.forEach { unlocked[it.id] = today }
+        saveUnlocked()
+        toast = if (newly.size == 1) {
+            "🏆 ¡Logro desbloqueado: ${newly[0].title}!"
+        } else {
+            "🏆 ¡${newly.size} logros desbloqueados!"
+        }
+    }
+
+    fun monthStats(month: YearMonth): MonthStats {
+        val today = LocalDate.now()
+        val current = YearMonth.from(today)
+        val lastDay = when {
+            month.isAfter(current) -> 0
+            month == current -> today.dayOfMonth
+            else -> month.lengthOfMonth()
+        }
+
+        val rates = ArrayList<Float?>()
+        var scheduledTotal = 0
+        var doneTotal = 0
+        var activeDays = 0
+        var perfectDays = 0
+        var bestRun = 0
+        var run = 0
+        val weekdayDone = IntArray(7)
+
+        for (d in 1..month.lengthOfMonth()) {
+            if (d > lastDay) {
+                rates.add(null)
+                continue
+            }
+            val date = month.atDay(d)
+            val scheduled = habitsFor(date).size
+            val done = minOf(doneCount(date), scheduled)
+            scheduledTotal += scheduled
+            doneTotal += done
+            rates.add(if (scheduled > 0) done / scheduled.toFloat() else null)
+            if (done > 0) {
+                activeDays++
+                run++
+                if (run > bestRun) bestRun = run
+                weekdayDone[date.dayOfWeek.value - 1] += done
+            } else {
+                run = 0
+            }
+            if (scheduled > 0 && done >= scheduled) perfectDays++
+        }
+
+        var sessions = 0
+        var minutes = 0
+        val prefix = month.toString()
+        for ((key, list) in focusLog) {
+            if (key.startsWith(prefix)) {
+                sessions += list.size
+                minutes += list.sum()
+            }
+        }
+
+        val maxDone = weekdayDone.maxOrNull() ?: 0
+        val bestWeekday = if (maxDone > 0) weekdayDone.indexOf(maxDone) else -1
+
+        return MonthStats(
+            month = month,
+            dayRates = rates,
+            completed = doneTotal,
+            scheduled = scheduledTotal,
+            successRate = if (scheduledTotal > 0) (doneTotal * 100f / scheduledTotal).roundToInt() else 0,
+            activeDays = activeDays,
+            elapsedDays = lastDay,
+            consistency = if (lastDay > 0) (activeDays * 100f / lastDay).roundToInt() else 0,
+            perfectDays = perfectDays,
+            bestRun = bestRun,
+            focusSessions = sessions,
+            focusMinutes = minutes,
+            bestWeekday = bestWeekday
+        )
+    }
+
+    fun globalSuccessRate(): Int {
+        val start = habits.minOfOrNull { it.created }
+            ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+            ?: return 0
+        val today = LocalDate.now()
+        var date = start
+        var scheduledTotal = 0
+        var doneTotal = 0
+        while (!date.isAfter(today)) {
+            val scheduled = habitsFor(date).size
+            scheduledTotal += scheduled
+            doneTotal += minOf(doneCount(date), scheduled)
+            date = date.plusDays(1)
+        }
+        return if (scheduledTotal > 0) (doneTotal * 100f / scheduledTotal).roundToInt() else 0
+    }
+
+    fun resetProgress() {
+        habits.clear()
+        completions.clear()
+        focusLog.clear()
+        unlocked.clear()
+        xp = 0
+        focusEndAt = null
+        focusRemainingMs = focusMinutes * 60_000L
+        selectedDate = LocalDate.now()
+        saveHabits()
+        saveCompletions()
+        saveFocusLog()
+        saveUnlocked()
+        saveFocusTimer()
+        prefs.edit().putInt(K_XP, 0).apply()
+    }
+
+    private fun loadTheme(): AppTheme = try {
+        AppTheme.valueOf(prefs.getString(K_THEME, AppTheme.GOLD.name) ?: AppTheme.GOLD.name)
+    } catch (e: IllegalArgumentException) {
+        AppTheme.GOLD
+    }
+
+    private fun loadHabits(): List<Habit> {
+        val raw = prefs.getString(K_HABITS, null) ?: return emptyList()
+        return try {
+            val arr = JSONArray(raw)
+            val list = ArrayList<Habit>()
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                list.add(
+                    Habit(
+                        id = o.getLong("id"),
+                        name = o.getString("name"),
+                        created = o.optString("created", LocalDate.now().toString())
+                    )
+                )
+            }
+            list
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun loadCompletions(): Map<String, Set<Long>> {
+        val raw = prefs.getString(K_COMPLETIONS, null) ?: return emptyMap()
+        return try {
+            val obj = JSONObject(raw)
+            val map = LinkedHashMap<String, Set<Long>>()
+            for (key in obj.keys()) {
+                val arr = obj.getJSONArray(key)
+                val ids = HashSet<Long>()
+                for (i in 0 until arr.length()) ids.add(arr.getLong(i))
+                if (ids.isNotEmpty()) map[key] = ids
+            }
+            map
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
+
+    private fun loadFocusLog(): Map<String, List<Int>> {
+        val raw = prefs.getString(K_FOCUS_LOG, null) ?: return emptyMap()
+        return try {
+            val obj = JSONObject(raw)
+            val map = LinkedHashMap<String, List<Int>>()
+            for (key in obj.keys()) {
+                val arr = obj.getJSONArray(key)
+                val list = ArrayList<Int>()
+                for (i in 0 until arr.length()) list.add(arr.getInt(i))
+                map[key] = list
+            }
+            map
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
+
+    private fun loadUnlocked(): Map<String, String> {
+        val raw = prefs.getString(K_UNLOCKED, null) ?: return emptyMap()
+        return try {
+            val obj = JSONObject(raw)
+            val map = LinkedHashMap<String, String>()
+            for (key in obj.keys()) map[key] = obj.getString(key)
+            map
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
 
     private fun saveHabits() {
         val arr = JSONArray()
-        habits.forEach { h ->
-            arr.put(JSONObject().put("id", h.id).put("name", h.name).put("done", JSONArray(h.doneDates.toList())))
+        for (h in habits) {
+            arr.put(JSONObject().put("id", h.id).put("name", h.name).put("created", h.created))
         }
         prefs.edit().putString(K_HABITS, arr.toString()).apply()
     }
 
-    private fun saveProfile() {
-        prefs.edit().putString(K_NAME, userName).putInt(K_AGE, userAge).putString(K_MISSION, mission).putInt(K_THEME, themeIndex).apply()
+    private fun saveCompletions() {
+        val obj = JSONObject()
+        for ((day, ids) in completions) obj.put(day, JSONArray(ids.toList()))
+        prefs.edit().putString(K_COMPLETIONS, obj.toString()).apply()
     }
 
-    private fun saveProgress() {
-        prefs.edit().putInt(K_XP, xp).putInt(K_FOCUS_MIN, focusMinutes).putInt(K_FOCUS_SESSIONS, focusSessions).putInt(K_FOCUS_TOTAL, focusTotalMinutes).apply()
+    private fun saveFocusLog() {
+        val obj = JSONObject()
+        for ((day, list) in focusLog) obj.put(day, JSONArray(list))
+        prefs.edit().putString(K_FOCUS_LOG, obj.toString()).apply()
     }
 
-    private fun saveTimer() {
-        prefs.edit().putLong(K_TIMER_END, timerEndAt).putLong(K_TIMER_PAUSED, timerPausedMs).putInt(K_FOCUS_MIN, focusMinutes).apply()
+    private fun saveUnlocked() {
+        val obj = JSONObject()
+        for ((id, date) in unlocked) obj.put(id, date)
+        prefs.edit().putString(K_UNLOCKED, obj.toString()).apply()
     }
 
-    fun statsFor(date: String): Pair<Int, Int> {
-        if (date > today) return 0 to 0
-        val relevant = habits.filter { Dates.keyOf(it.id) <= date }
-        return relevant.count { date in it.doneDates } to relevant.size
-    }
-
-    fun bestStreak(): Int = habits.maxOfOrNull { streakOf(it, today) } ?: 0
-
-    fun addHabit(name: String) {
-        val clean = name.trim()
-        if (clean.isEmpty()) return
-        habits.add(Habit(System.currentTimeMillis(), clean, emptySet()))
-        saveHabits()
-    }
-
-    fun toggleHabit(id: Long) {
-        val index = habits.indexOfFirst { it.id == id }
-        if (index < 0) return
-        val habit = habits[index]
-        val newDates = if (today in habit.doneDates) {
-            xp = (xp - XP_HABIT).coerceAtLeast(0)
-            habit.doneDates - today
-        } else {
-            xp += XP_HABIT
-            habit.doneDates + today
-        }
-        habits[index] = habit.copy(doneDates = newDates)
-        saveHabits()
-        saveProgress()
-    }
-
-    fun deleteHabit(id: Long) {
-        habits.removeAll { it.id == id }
-        saveHabits()
-    }
-
-    fun selectFocusMinutes(minutes: Int) {
-        if (!isIdle) return
-        focusMinutes = minutes
-        saveTimer()
-    }
-
-    fun startFocus() {
-        val now = System.currentTimeMillis()
-        lastReward = 0
-        timerPausedMs = 0L
-        nowMs = now
-        timerEndAt = now + focusMinutes * 60_000L
-        saveTimer()
-    }
-
-    fun pauseFocus() {
-        if (timerEndAt <= 0L) return
-        val remaining = (timerEndAt - System.currentTimeMillis()).coerceAtLeast(1_000L)
-        timerPausedMs = remaining
-        timerEndAt = 0L
-        saveTimer()
-    }
-
-    fun resumeFocus() {
-        if (timerPausedMs <= 0L) return
-        val now = System.currentTimeMillis()
-        nowMs = now
-        timerEndAt = now + timerPausedMs
-        timerPausedMs = 0L
-        saveTimer()
-    }
-
-    fun stopFocus() {
-        timerEndAt = 0L
-        timerPausedMs = 0L
-        saveTimer()
-    }
-
-    fun completeFocus() {
-        val minutes = focusMinutes
-        timerEndAt = 0L
-        timerPausedMs = 0L
-        focusSessions += 1
-        focusTotalMinutes += minutes
-        xp += minutes
-        lastReward = minutes
-        saveTimer()
-        saveProgress()
-    }
-
-    fun updateProfile(name: String, age: Int) {
-        userName = name.trim().ifEmpty { "Juan" }
-        userAge = age
-        saveProfile()
-    }
-
-    fun updateMission(text: String) {
-        mission = text.trim().ifEmpty { DEFAULT_MISSION }
-        saveProfile()
-    }
-
-    fun updateTheme(index: Int) {
-        themeIndex = index.coerceIn(0, THEMES.lastIndex)
-        saveProfile()
-    }
-
-    fun resetProgress() {
-        for (i in habits.indices) habits[i] = habits[i].copy(doneDates = emptySet())
-        xp = 0
-        focusSessions = 0
-        focusTotalMinutes = 0
-        lastReward = 0
-        timerEndAt = 0L
-        timerPausedMs = 0L
-        saveHabits()
-        saveProgress()
-        saveTimer()
-    }
-
-    companion object {
-        private const val K_NAME = "profile_name"
-        private const val K_AGE = "profile_age"
-        private const val K_MISSION = "profile_mission"
-        private const val K_THEME = "profile_theme"
-        private const val K_XP = "xp"
-        private const val K_HABITS = "habits_v2"
-        private const val K_FOCUS_MIN = "focus_minutes"
-        private const val K_TIMER_END = "focus_timer_end"
-        private const val K_TIMER_PAUSED = "focus_timer_paused"
-        private const val K_FOCUS_SESSIONS = "focus_sessions"
-        private const val K_FOCUS_TOTAL = "focus_total_minutes"
-        const val DEFAULT_MISSION = "Construir disciplina diaria y convertirme en la mejor versión de mí."
+    private fun saveFocusTimer() {
+        prefs.edit()
+            .putInt(K_FOCUS_MIN, focusMinutes)
+            .putLong(K_FOCUS_END, focusEndAt ?: 0L)
+            .apply()
     }
 }
 
-// =====================================================================
-//  ACTIVITY
-// =====================================================================
+// ─────────────────────────────────────────────────────────────────────────────
+// Actividad
+// ─────────────────────────────────────────────────────────────────────────────
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-        )
-        setContent {
-            val state = remember { AppState(applicationContext) }
-            StarforgeTheme(accent = THEMES[state.themeIndex].color) {
-                StarforgeApp(state)
-            }
-        }
+        val store = StarforgeStore(getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE))
+        setContent { StarforgeApp(store) }
     }
 }
 
-// =====================================================================
-//  NAVEGACIÓN
-// =====================================================================
+// ─────────────────────────────────────────────────────────────────────────────
+// Tema
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+fun StarforgeTheme(accent: Color, content: @Composable () -> Unit) {
+    val scheme = darkColorScheme(
+        primary = accent,
+        onPrimary = Ink,
+        secondary = accent,
+        onSecondary = Ink,
+        background = Ink,
+        onBackground = TextMain,
+        surface = Navy,
+        onSurface = TextMain,
+        surfaceVariant = Slate,
+        onSurfaceVariant = TextMuted,
+        inverseSurface = Slate,
+        inverseOnSurface = TextMain,
+        outline = Slate
+    )
+    MaterialTheme(colorScheme = scheme, content = content)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Raíz de la app
+// ─────────────────────────────────────────────────────────────────────────────
+
 private data class TabItem(val label: String, val icon: ImageVector)
 
 private val TABS = listOf(
     TabItem("Inicio", Icons.Filled.Home),
-    TabItem("Hábitos", Icons.Filled.Check),
-    TabItem("Enfoque", Icons.Filled.Star),
+    TabItem("Hábitos", Icons.Filled.CheckCircle),
+    TabItem("Enfoque", Icons.Filled.Lock),
+    TabItem("Progreso", Icons.Filled.Star),
     TabItem("Perfil", Icons.Filled.Person)
 )
 
 @Composable
-private fun StarforgeApp(state: AppState) {
-    var tab by rememberSaveable { mutableStateOf(0) }
-    var showAddHabit by rememberSaveable { mutableStateOf(false) }
+fun StarforgeApp(store: StarforgeStore) {
+    StarforgeTheme(accent = store.theme.accent) {
+        val accent = MaterialTheme.colorScheme.primary
+        val snackbar = remember { SnackbarHostState() }
+        var tab by rememberSaveable { mutableStateOf(0) }
+        var showAdd by remember { mutableStateOf(false) }
 
-    LaunchedEffect(state.timerEndAt) {
-        while (state.timerEndAt > 0L) {
-            val now = System.currentTimeMillis()
-            state.nowMs = now
-            if (now >= state.timerEndAt) {
-                state.completeFocus()
-                break
+        LaunchedEffect(store.toast) {
+            val message = store.toast
+            if (message != null) {
+                snackbar.showSnackbar(message)
+                store.toast = null
             }
-            delay(200)
         }
-    }
 
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(30_000)
-            val key = Dates.today()
-            if (key != state.today) state.today = key
+        LaunchedEffect(store.focusEndAt) {
+            val end = store.focusEndAt
+            if (end == null) {
+                store.focusRemainingMs = store.focusMinutes * 60_000L
+                return@LaunchedEffect
+            }
+            while (true) {
+                val left = end - System.currentTimeMillis()
+                if (left <= 0L) {
+                    store.finishFocus()
+                    break
+                }
+                store.focusRemainingMs = left
+                delay(250L)
+            }
         }
-    }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = { StarforgeBottomBar(selected = tab, onSelect = { tab = it }) },
-        floatingActionButton = {
-            AnimatedVisibility(
-                visible = tab == 1,
-                enter = scaleIn(tween(200)) + fadeIn(tween(200)),
-                exit = scaleOut(tween(150)) + fadeOut(tween(150))
-            ) {
-                FloatingActionButton(
-                    onClick = { showAddHabit = true },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Ink,
-                    shape = RoundedCornerShape(22.dp)
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = "Añadir hábito")
+        Scaffold(
+            containerColor = Ink,
+            snackbarHost = { SnackbarHost(snackbar) },
+            bottomBar = {
+                NavigationBar(containerColor = Navy) {
+                    TABS.forEachIndexed { index, item ->
+                        NavigationBarItem(
+                            selected = tab == index,
+                            onClick = { tab = index },
+                            icon = { Icon(item.icon, contentDescription = item.label) },
+                            label = { Text(item.label, fontSize = 11.sp) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = accent,
+                                selectedTextColor = accent,
+                                indicatorColor = accent.copy(alpha = 0.2f),
+                                unselectedIconColor = TextMuted,
+                                unselectedTextColor = TextMuted
+                            )
+                        )
+                    }
+                }
+            },
+            floatingActionButton = {
+                if (tab == 1) {
+                    FloatingActionButton(
+                        onClick = { showAdd = true },
+                        containerColor = accent,
+                        contentColor = Ink
+                    ) {
+                        Icon(Icons.Filled.Add, contentDescription = "Agregar hábito")
+                    }
+                }
+            }
+        ) { innerPadding ->
+            Box(Modifier.fillMaxSize().padding(innerPadding)) {
+                when (tab) {
+                    0 -> HomeScreen(store)
+                    1 -> HabitsScreen(store)
+                    2 -> FocusScreen(store)
+                    3 -> ProgressScreen(store)
+                    else -> ProfileScreen(store)
                 }
             }
         }
-    ) { inner ->
-        Box(
-            Modifier
-                .padding(inner)
-                .fillMaxSize()
-        ) {
-            AnimatedContent(
-                targetState = tab,
-                transitionSpec = { fadeIn(tween(260)) togetherWith fadeOut(tween(160)) },
-                label = "tabs"
-            ) { current ->
-                when (current) {
-                    0 -> HomeScreen(state, onOpenProfile = { tab = 3 })
-                    1 -> HabitsScreen(state)
-                    2 -> FocusScreen(state)
-                    else -> ProfileScreen(state)
-                }
-            }
-        }
-    }
 
-    if (showAddHabit) {
-        AddHabitDialog(
-            onDismiss = { showAddHabit = false },
-            onAdd = {
-                state.addHabit(it)
-                showAddHabit = false
-            }
-        )
+        if (showAdd) {
+            AddHabitDialog(
+                onDismiss = { showAdd = false },
+                onAdd = {
+                    store.addHabit(it)
+                    showAdd = false
+                }
+            )
+        }
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Componentes reutilizables
+// ─────────────────────────────────────────────────────────────────────────────
+
 @Composable
-private fun StarforgeBottomBar(selected: Int, onSelect: (Int) -> Unit) {
-    val accent = MaterialTheme.colorScheme.primary
-    Surface(
-        color = Navy,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        shadowElevation = 10.dp
-    ) {
-        NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp) {
-            TABS.forEachIndexed { index, item ->
-                NavigationBarItem(
-                    selected = selected == index,
-                    onClick = { onSelect(index) },
-                    icon = { Icon(item.icon, contentDescription = item.label) },
-                    label = { Text(item.label, fontSize = 12.sp, fontWeight = FontWeight.Medium) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Ink,
-                        selectedTextColor = accent,
-                        indicatorColor = accent,
-                        unselectedIconColor = OnDarkMuted,
-                        unselectedTextColor = OnDarkMuted
-                    )
+private fun ScreenTitle(text: String) {
+    Text(text, color = TextMain, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+}
+
+@Composable
+private fun AppCard(
+    modifier: Modifier = Modifier,
+    color: Color = Navy,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(color)
+            .padding(18.dp),
+        content = content
+    )
+}
+
+@Composable
+private fun ScreenColumn(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        content = content
+    )
+}
+
+@Composable
+private fun Ring(
+    progress: Float,
+    color: Color,
+    diameter: Dp,
+    stroke: Dp,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit = {}
+) {
+    Box(modifier.size(diameter), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val sw = stroke.toPx()
+            val arcSize = Size(size.width - sw, size.height - sw)
+            val topLeft = Offset(sw / 2f, sw / 2f)
+            drawArc(
+                color = Slate.copy(alpha = 0.55f),
+                startAngle = 0f,
+                sweepAngle = 360f,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = sw)
+            )
+            val sweep = 360f * progress.coerceIn(0f, 1f)
+            if (sweep > 0f) {
+                drawArc(
+                    color = color,
+                    startAngle = -90f,
+                    sweepAngle = sweep,
+                    useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
+                    style = Stroke(width = sw, cap = StrokeCap.Round)
                 )
             }
         }
+        content()
     }
 }
 
-// =====================================================================
-//  COMPONENTES
-// =====================================================================
 @Composable
-private fun ScreenHeader(
-    title: String,
-    subtitle: String,
+private fun BarProgress(
+    progress: Float,
+    color: Color,
     modifier: Modifier = Modifier,
-    trailing: @Composable () -> Unit = {}
+    height: Dp = 8.dp
 ) {
-    Row(
-        modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.headlineLarge, color = OnDark)
-            Spacer(Modifier.height(2.dp))
-            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = OnDarkMuted)
-        }
-        trailing()
-    }
-}
-
-@Composable
-private fun AccentBar(fraction: Float, modifier: Modifier = Modifier, height: Dp = 12.dp) {
-    val accent = MaterialTheme.colorScheme.primary
-    val shape = RoundedCornerShape(50)
     Box(
         modifier
             .fillMaxWidth()
             .height(height)
-            .clip(shape)
-            .background(Color.White.copy(alpha = 0.10f))
+            .clip(RoundedCornerShape(50))
+            .background(Slate.copy(alpha = 0.55f))
     ) {
         Box(
             Modifier
-                .fillMaxWidth(fraction.coerceIn(0f, 1f))
                 .fillMaxHeight()
-                .clip(shape)
-                .background(Brush.horizontalGradient(listOf(accent.copy(alpha = 0.7f), accent)))
+                .fillMaxWidth(progress.coerceIn(0f, 1f))
+                .clip(RoundedCornerShape(50))
+                .background(color)
         )
     }
 }
 
 @Composable
-private fun Pill(
-    text: String,
-    selected: Boolean,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    onClick: () -> Unit
-) {
+private fun SegmentedTabs(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     val accent = MaterialTheme.colorScheme.primary
-    val bg by animateColorAsState(if (selected) accent else Color.Transparent, tween(200), label = "pillBg")
-    val fg by animateColorAsState(if (selected) Ink else OnDarkMuted, tween(200), label = "pillFg")
-    val shape = RoundedCornerShape(50)
-    Box(
-        modifier
-            .alpha(if (enabled) 1f else 0.45f)
-            .clip(shape)
-            .background(bg)
-            .border(1.dp, if (selected) accent else Hairline, shape)
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text, color = fg, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-    }
-}
-
-@Composable
-private fun Avatar(name: String, size: Dp, fontSize: TextUnit, modifier: Modifier = Modifier) {
-    val accent = MaterialTheme.colorScheme.primary
-    Box(
-        modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(Brush.linearGradient(listOf(Navy, NavyDeep)))
-            .border(2.dp, accent, CircleShape),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            name.trim().take(1).uppercase().ifEmpty { "?" },
-            color = accent,
-            fontSize = fontSize,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}
-
-@Composable
-private fun StatCard(
-    label: String,
-    value: String,
-    container: Color,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = container, contentColor = OnDark),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-    ) {
-        Column(Modifier.padding(18.dp)) {
-            Text(label, color = OnDarkMuted, fontSize = 13.sp)
-            Spacer(Modifier.height(6.dp))
-            Text(value, color = MaterialTheme.colorScheme.primary, fontSize = 26.sp, fontWeight = FontWeight.SemiBold)
-        }
-    }
-}
-
-@Composable
-private fun CheckBubble(checked: Boolean) {
-    val accent = MaterialTheme.colorScheme.primary
-    val bg by animateColorAsState(if (checked) accent else Color.Transparent, tween(220), label = "checkBg")
-    val ring by animateColorAsState(if (checked) accent else Color(0xFF4B5C7D), tween(220), label = "checkRing")
-    Box(
+    Row(
         Modifier
-            .size(30.dp)
-            .clip(CircleShape)
-            .background(bg)
-            .border(2.dp, ring, CircleShape),
-        contentAlignment = Alignment.Center
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(Navy)
+            .padding(4.dp)
     ) {
-        AnimatedVisibility(
-            visible = checked,
-            enter = scaleIn(tween(180)) + fadeIn(tween(180)),
-            exit = scaleOut(tween(120)) + fadeOut(tween(120))
-        ) {
-            Icon(Icons.Filled.Check, contentDescription = null, tint = Ink, modifier = Modifier.size(18.dp))
+        options.forEachIndexed { i, label ->
+            Box(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(if (i == selected) accent else Color.Transparent)
+                    .clickable { onSelect(i) }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    label,
+                    color = if (i == selected) Ink else TextMuted,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedTextColor = OnDark,
-    unfocusedTextColor = OnDark,
+    focusedTextColor = TextMain,
+    unfocusedTextColor = TextMain,
     focusedBorderColor = MaterialTheme.colorScheme.primary,
-    unfocusedBorderColor = Color(0xFF4B5C7D),
-    cursorColor = MaterialTheme.colorScheme.primary,
+    unfocusedBorderColor = Slate,
     focusedLabelColor = MaterialTheme.colorScheme.primary,
-    unfocusedLabelColor = OnDarkMuted,
-    focusedPlaceholderColor = OnDarkMuted.copy(alpha = 0.6f),
-    unfocusedPlaceholderColor = OnDarkMuted.copy(alpha = 0.6f)
+    unfocusedLabelColor = TextMuted,
+    cursorColor = MaterialTheme.colorScheme.primary
 )
 
-@Composable
-private fun ConfirmDialog(
-    title: String,
-    message: String,
-    confirmText: String,
-    danger: Boolean = false,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = Navy,
-        titleContentColor = OnDark,
-        textContentColor = OnDarkMuted,
-        shape = RoundedCornerShape(28.dp),
-        title = { Text(title, fontWeight = FontWeight.SemiBold) },
-        text = { Text(message) },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(confirmText, color = if (danger) DangerRed else MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar", color = OnDarkMuted) }
-        }
-    )
+private fun longDate(date: LocalDate): String =
+    "${DAYS_FULL[date.dayOfWeek.value - 1]} ${date.dayOfMonth} de ${MONTHS_ES[date.monthValue - 1].lowercase()}"
+
+private fun prettyDate(iso: String): String = try {
+    val d = LocalDate.parse(iso)
+    "${d.dayOfMonth} ${MONTHS_ES[d.monthValue - 1].take(3).lowercase()} ${d.year}"
+} catch (e: Exception) {
+    iso
 }
 
-// =====================================================================
-//  PESTAÑA 1: INICIO
-// =====================================================================
 @Composable
-private fun HomeScreen(state: AppState, onOpenProfile: () -> Unit) {
+private fun WeekStrip(store: StarforgeStore) {
     val accent = MaterialTheme.colorScheme.primary
-    val today = state.today
-    var selected by rememberSaveable { mutableStateOf(today) }
-
-    val weekStart = Dates.weekStart(selected)
-    val weekEnd = Dates.addDays(weekStart, 6)
-    val (done, total) = state.statsFor(selected)
-    val fraction = if (total == 0) 0f else done.toFloat() / total
-    val animatedFraction by animateFloatAsState(fraction, tween(700), label = "dayProgress")
-    val percent = (fraction * 100).toInt()
-    val quote = QUOTES[Dates.dayOfYear() % QUOTES.size]
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
-    ) {
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(Dates.greeting(), color = OnDarkMuted, style = MaterialTheme.typography.bodyLarge)
-                    Text("Hola, ${state.userName}", style = MaterialTheme.typography.headlineLarge, color = OnDark)
-                    Text(Dates.formatLong(today), color = OnDarkMuted, style = MaterialTheme.typography.bodyMedium)
-                }
-                Avatar(name = state.userName, size = 52.dp, fontSize = 22.sp, modifier = Modifier.clickable(onClick = onOpenProfile))
-            }
-        }
-
-        item {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = Navy, contentColor = OnDark),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                modifier = Modifier.fillMaxWidth()
+    val today = LocalDate.now()
+    val monday = today.minusDays((today.dayOfWeek.value - 1).toLong())
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        for (i in 0..6) {
+            val date = monday.plusDays(i.toLong())
+            val selected = date == store.selectedDate
+            val active = store.doneCount(date) > 0
+            val future = date.isAfter(today)
+            Column(
+                Modifier
+                    .weight(1f)
+                    .alpha(if (future) 0.55f else 1f)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(if (selected) accent else Navy)
+                    .clickable { store.selectedDate = date }
+                    .padding(vertical = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(Modifier.background(Brush.linearGradient(listOf(Navy, NavyDeep))).padding(22.dp)) {
-                    Column {
-                        Text(
-                            if (selected == today) "Progreso de hoy" else "Progreso del ${Dates.weekdayLong(selected)} ${Dates.dayOfMonth(selected)}",
-                            color = OnDarkMuted,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text("$percent%", color = accent, fontSize = 54.sp, fontWeight = FontWeight.Light)
-                        Spacer(Modifier.height(10.dp))
-                        AccentBar(animatedFraction, height = 12.dp)
-                        Spacer(Modifier.height(14.dp))
-                        Text(
-                            when {
-                                total == 0 -> "Aún no hay hábitos para este día"
-                                done == total -> "¡Día perfecto! Todos los hábitos completados"
-                                else -> "$done de $total hábitos completados"
-                            },
-                            color = OnDark,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            }
-        }
-
-        item {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Semana del ${Dates.dayOfMonth(weekStart)} ${Dates.monthShort(weekStart)} al ${Dates.dayOfMonth(weekEnd)} ${Dates.monthShort(weekEnd)}",
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = OnDark
-                    )
-                    IconButton(onClick = { selected = Dates.addDays(selected, -7) }) {
-                        Icon(Icons.Filled.KeyboardArrowLeft, "Semana anterior", tint = OnDarkMuted)
-                    }
-                    IconButton(onClick = { selected = Dates.addDays(selected, 7) }) {
-                        Icon(Icons.Filled.KeyboardArrowRight, "Semana siguiente", tint = OnDarkMuted)
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    for (i in 0..6) {
-                        val key = Dates.addDays(weekStart, i)
-                        val (d, t) = state.statsFor(key)
-                        DayChip(
-                            dateKey = key,
-                            isSelected = key == selected,
-                            isToday = key == today,
-                            done = d,
-                            total = t,
-                            modifier = Modifier.weight(1f),
-                            onClick = { selected = key }
-                        )
-                    }
-                }
-            }
-        }
-
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                val best = state.bestStreak()
-                StatCard("Mejor racha", "$best ${if (best == 1) "día" else "días"}", Navy, Modifier.weight(1f))
-                StatCard("Nivel ${state.level}", "${state.xp} XP", Slate, Modifier.weight(1f))
-            }
-        }
-
-        item {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = Slate, contentColor = OnDark),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(Modifier.padding(22.dp)) {
-                    Text("Frase del día", color = accent, style = MaterialTheme.typography.labelLarge)
-                    Spacer(Modifier.height(10.dp))
-                    Text("“$quote”", color = OnDark, fontSize = 19.sp, lineHeight = 27.sp, fontWeight = FontWeight.Medium)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DayChip(
-    dateKey: String,
-    isSelected: Boolean,
-    isToday: Boolean,
-    done: Int,
-    total: Int,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    val accent = MaterialTheme.colorScheme.primary
-    val bg by animateColorAsState(if (isSelected) accent else Navy, tween(220), label = "dayBg")
-    val textColor by animateColorAsState(if (isSelected) Ink else OnDark, tween(220), label = "dayText")
-    val subColor by animateColorAsState(if (isSelected) Ink.copy(alpha = 0.7f) else OnDarkMuted, tween(220), label = "daySub")
-    val shape = RoundedCornerShape(18.dp)
-    val dotColor = when {
-        total > 0 && done == total -> if (isSelected) Ink else accent
-        done > 0 -> if (isSelected) Ink.copy(alpha = 0.45f) else accent.copy(alpha = 0.45f)
-        else -> Color.Transparent
-    }
-
-    Column(
-        modifier
-            .clip(shape)
-            .background(bg)
-            .border(width = if (isToday && !isSelected) 1.5.dp else 0.dp, color = if (isToday && !isSelected) accent else Color.Transparent, shape = shape)
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(Dates.weekdayShort(dateKey), color = subColor, fontSize = 11.sp)
-        Spacer(Modifier.height(4.dp))
-        Text(Dates.dayOfMonth(dateKey).toString(), color = textColor, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(6.dp))
-        Box(Modifier.size(6.dp).clip(CircleShape).background(dotColor))
-    }
-}
-
-// =====================================================================
-//  PESTAÑA 2: HÁBITOS
-// =====================================================================
-@Composable
-private fun HabitsScreen(state: AppState) {
-    val accent = MaterialTheme.colorScheme.primary
-    val today = state.today
-    var filter by rememberSaveable { mutableStateOf(0) } 
-    var habitToDelete by remember { mutableStateOf<Habit?>(null) }
-
-    val total = state.habits.size
-    val doneCount = state.habits.count { today in it.doneDates }
-    val pendingCount = total - doneCount
-    val fraction by animateFloatAsState(if (total == 0) 0f else doneCount.toFloat() / total, tween(600), label = "habitsProgress")
-    val shown = state.habits.filter {
-        when (filter) {
-            1 -> today !in it.doneDates
-            2 -> today in it.doneDates
-            else -> true
-        }
-    }
-
-    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-        Spacer(Modifier.height(16.dp))
-        ScreenHeader(
-            title = "Hábitos",
-            subtitle = Dates.formatLong(today),
-            trailing = {
-                Box(Modifier.clip(RoundedCornerShape(50)).background(Navy).border(1.dp, accent, RoundedCornerShape(50)).padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    Text("$doneCount/$total", color = accent, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                }
-            }
-        )
-        Spacer(Modifier.height(16.dp))
-        AccentBar(fraction, height = 8.dp)
-        Spacer(Modifier.height(16.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pill("Todos", filter == 0) { filter = 0 }
-            Pill("Pendientes · $pendingCount", filter == 1) { filter = 1 }
-            Pill("Hechos · $doneCount", filter == 2) { filter = 2 }
-        }
-        Spacer(Modifier.height(16.dp))
-
-        if (shown.isEmpty()) {
-            Card(
-                shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = Slate, contentColor = OnDark),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(if (total == 0) "Aún no tienes hábitos" else "Nada por aquí", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-                    Spacer(Modifier.height(6.dp))
-                    Text(if (total == 0) "Toca el botón + para crear tu primer hábito." else "Cambia el filtro para ver el resto de tus hábitos.", color = OnDarkMuted, textAlign = TextAlign.Center)
-                }
-            }
-        } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 104.dp)) {
-                items(shown, key = { it.id }) { habit ->
-                    HabitCard(habit = habit, today = today, onToggle = { state.toggleHabit(habit.id) }, onDelete = { habitToDelete = habit })
-                }
-            }
-        }
-    }
-
-    habitToDelete?.let { habit ->
-        ConfirmDialog(
-            title = "Eliminar hábito",
-            message = "¿Quieres eliminar \"${habit.name}\" y todo su historial?",
-            confirmText = "Eliminar",
-            danger = true,
-            onConfirm = {
-                state.deleteHabit(habit.id)
-                habitToDelete = null
-            },
-            onDismiss = { habitToDelete = null }
-        )
-    }
-}
-
-@Composable
-private fun HabitCard(habit: Habit, today: String, onToggle: () -> Unit, onDelete: () -> Unit) {
-    val done = today in habit.doneDates
-    val streak = streakOf(habit, today)
-    val container by animateColorAsState(if (done) Color(0xFF15233F) else Navy, tween(250), label = "habitBg")
-    val shape = RoundedCornerShape(24.dp)
-
-    Card(
-        shape = shape,
-        colors = CardDefaults.cardColors(containerColor = container, contentColor = OnDark),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        modifier = Modifier.fillMaxWidth().clip(shape).clickable(onClick = onToggle)
-    ) {
-        Row(Modifier.padding(start = 18.dp, top = 14.dp, bottom = 14.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            CheckBubble(checked = done)
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
                 Text(
-                    habit.name,
-                    color = if (done) OnDark.copy(alpha = 0.6f) else OnDark,
-                    textDecoration = if (done) TextDecoration.LineThrough else TextDecoration.None,
+                    DAYS_SHORT[i],
+                    color = if (selected) Ink else TextMuted,
+                    fontSize = 12.sp
+                )
+                Text(
+                    "${date.dayOfMonth}",
+                    color = if (selected) Ink else TextMain,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Box(
+                    Modifier
+                        .padding(top = 4.dp)
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(
+                            when {
+                                !active -> Color.Transparent
+                                selected -> Ink
+                                else -> accent
+                            }
+                        )
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Inicio
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun HomeScreen(store: StarforgeStore) {
+    val accent = MaterialTheme.colorScheme.primary
+    val today = LocalDate.now()
+    val date = store.selectedDate
+    val dayHabits = store.habitsFor(date)
+    val done = dayHabits.count { store.isDone(it.id, date) }
+    val progress = if (dayHabits.isEmpty()) 0f else done / dayHabits.size.toFloat()
+    val hour = LocalTime.now().hour
+    val greeting = when {
+        hour < 12 -> "Buenos días"
+        hour < 20 -> "Buenas tardes"
+        else -> "Buenas noches"
+    }
+    val streak = store.currentStreak()
+
+    ScreenColumn {
+        Column {
+            Text(greeting, color = TextMuted, fontSize = 14.sp)
+            ScreenTitle(store.userName)
+            Text(longDate(today), color = TextMuted, fontSize = 13.sp)
+        }
+
+        WeekStrip(store)
+
+        AppCard {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Ring(progress = progress, color = accent, diameter = 96.dp, stroke = 10.dp) {
+                    Text(
+                        "${(progress * 100).roundToInt()}%",
+                        color = TextMain,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(Modifier.width(18.dp))
+                Column {
+                    Text(
+                        if (date == today) "Progreso de hoy" else "Progreso del ${longDate(date)}",
+                        color = TextMain,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        "$done de ${dayHabits.size} hábitos",
+                        color = TextMuted,
+                        fontSize = 13.sp
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        when {
+                            dayHabits.isEmpty() -> "Agrega tu primer hábito en la pestaña Hábitos."
+                            done == dayHabits.size -> "¡Día completo! 🔥"
+                            else -> "Te faltan ${dayHabits.size - done} para cerrar el día."
+                        },
+                        color = accent,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        }
+
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(Brush.linearGradient(listOf(Navy, accent.copy(alpha = 0.35f))))
+                .padding(20.dp)
+        ) {
+            Column {
+                Text("FRASE DEL DÍA", color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "“${QUOTES[today.dayOfYear % QUOTES.size]}”",
+                    color = TextMain,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Medium
                 )
-                Spacer(Modifier.height(2.dp))
+            }
+        }
+
+        AppCard {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Nivel ${store.level}", color = TextMain, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("${store.xpInLevel}/$XP_PER_LEVEL XP", color = TextMuted, fontSize = 13.sp)
+            }
+            Spacer(Modifier.height(10.dp))
+            BarProgress(store.xpInLevel / XP_PER_LEVEL.toFloat(), accent)
+            Spacer(Modifier.height(14.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("🔥 Racha: $streak d", color = TextMain, fontSize = 13.sp)
+                Text("🏆 Logros: ${store.unlocked.size}/${ACHIEVEMENTS.size}", color = TextMain, fontSize = 13.sp)
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hábitos
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun HabitsScreen(store: StarforgeStore) {
+    val accent = MaterialTheme.colorScheme.primary
+    val today = LocalDate.now()
+    val date = store.selectedDate
+    val list = store.habitsFor(date)
+    val editable = store.canEdit(date)
+    val done = list.count { store.isDone(it.id, date) }
+    var toDelete by remember { mutableStateOf<Habit?>(null) }
+
+    ScreenColumn {
+        ScreenTitle("Hábitos")
+        WeekStrip(store)
+
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(longDate(date), color = TextMuted, fontSize = 14.sp)
+            if (date != today) {
+                TextButton(onClick = { store.selectedDate = today }) {
+                    Text("Ir a hoy", color = accent)
+                }
+            }
+        }
+
+        AppCard {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Completados", color = TextMain, fontWeight = FontWeight.SemiBold)
+                Text("$done/${list.size}", color = accent, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.height(10.dp))
+            BarProgress(if (list.isEmpty()) 0f else done / list.size.toFloat(), accent)
+        }
+
+        if (!editable) {
+            Text("No puedes marcar hábitos en días futuros.", color = TextMuted, fontSize = 12.sp)
+        }
+
+        if (list.isEmpty()) {
+            AppCard {
                 Text(
-                    when {
-                        streak == 0 -> "Sin racha todavía"
-                        streak == 1 -> "Racha de 1 día"
-                        else -> "Racha de $streak días"
-                    },
-                    color = OnDarkMuted,
-                    fontSize = 13.sp
+                    "No hay hábitos para este día. Toca + para crear uno.",
+                    color = TextMuted,
+                    fontSize = 14.sp
                 )
             }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, contentDescription = "Eliminar hábito", tint = OnDarkMuted)
+        } else {
+            for (habit in list) {
+                key(habit.id) {
+                    HabitRow(
+                        habit = habit,
+                        done = store.isDone(habit.id, date),
+                        enabled = editable,
+                        onToggle = { store.toggleHabit(habit, date) },
+                        onDelete = { toDelete = habit }
+                    )
+                }
             }
+        }
+
+        Spacer(Modifier.height(72.dp))
+    }
+
+    toDelete?.let { habit ->
+        AlertDialog(
+            onDismissRequest = { toDelete = null },
+            containerColor = Navy,
+            title = { Text("Eliminar hábito", color = TextMain) },
+            text = {
+                Text(
+                    "¿Eliminar “${habit.name}” y su historial? Tus logros y XP se conservan.",
+                    color = TextMuted
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    store.deleteHabit(habit)
+                    toDelete = null
+                }) { Text("Eliminar", color = accent) }
+            },
+            dismissButton = {
+                TextButton(onClick = { toDelete = null }) { Text("Cancelar", color = TextMuted) }
+            }
+        )
+    }
+}
+
+@Composable
+private fun HabitRow(
+    habit: Habit,
+    done: Boolean,
+    enabled: Boolean,
+    onToggle: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val accent = MaterialTheme.colorScheme.primary
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(Navy)
+            .clickable(enabled = enabled) { onToggle() }
+            .padding(start = 16.dp, top = 6.dp, bottom = 6.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .background(if (done) accent else Color.Transparent)
+                .border(2.dp, if (done) accent else TextMuted, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            if (done) {
+                Icon(Icons.Filled.Check, contentDescription = null, tint = Ink, modifier = Modifier.size(18.dp))
+            }
+        }
+        Spacer(Modifier.width(14.dp))
+        Text(
+            habit.name,
+            modifier = Modifier.weight(1f),
+            color = if (done) TextMuted else TextMain,
+            fontSize = 16.sp,
+            textDecoration = if (done) TextDecoration.LineThrough else null
+        )
+        IconButton(onClick = onDelete) {
+            Icon(Icons.Filled.Delete, contentDescription = "Eliminar", tint = TextMuted)
         }
     }
 }
 
 @Composable
 private fun AddHabitDialog(onDismiss: () -> Unit, onAdd: (String) -> Unit) {
-    var text by rememberSaveable { mutableStateOf("") }
-    val canAdd = text.trim().isNotEmpty()
-    val focusRequester = remember { FocusRequester() }
-
-    LaunchedEffect(Unit) {
-        delay(150)
-        runCatching { focusRequester.requestFocus() }
-    }
-
+    var text by remember { mutableStateOf("") }
+    val accent = MaterialTheme.colorScheme.primary
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Navy,
-        titleContentColor = OnDark,
-        textContentColor = OnDark,
-        shape = RoundedCornerShape(28.dp),
-        title = { Text("Nuevo hábito", fontWeight = FontWeight.SemiBold) },
+        title = { Text("Nuevo hábito", color = TextMain) },
         text = {
             OutlinedTextField(
                 value = text,
-                onValueChange = { if (it.length <= 50) text = it },
+                onValueChange = { if (it.length <= 40) text = it },
                 singleLine = true,
-                placeholder = { Text("Ej. Leer 20 minutos") },
-                shape = RoundedCornerShape(18.dp),
-                colors = fieldColors(),
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { if (canAdd) onAdd(text.trim()) }),
-                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)
+                placeholder = { Text("Ej. Meditar 10 minutos", color = TextMuted) },
+                shape = RoundedCornerShape(16.dp),
+                colors = fieldColors()
             )
         },
         confirmButton = {
-            TextButton(onClick = { if (canAdd) onAdd(text.trim()) }, enabled = canAdd) {
-                Text("Añadir", color = if (canAdd) MaterialTheme.colorScheme.primary else OnDarkMuted, fontWeight = FontWeight.Bold)
+            TextButton(onClick = { onAdd(text) }, enabled = text.isNotBlank()) {
+                Text("Agregar", color = if (text.isNotBlank()) accent else TextMuted)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar", color = OnDarkMuted) }
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = TextMuted) }
         }
     )
 }
 
-// =====================================================================
-//  PESTAÑA 3: ENFOQUE
-// =====================================================================
+// ─────────────────────────────────────────────────────────────────────────────
+// Enfoque
+// ─────────────────────────────────────────────────────────────────────────────
+
 @Composable
-private fun FocusScreen(state: AppState) {
+private fun FocusScreen(store: StarforgeStore) {
     val accent = MaterialTheme.colorScheme.primary
-    val running = state.timerEndAt > 0L
-    val paused = state.timerPausedMs > 0L
-    val idle = !running && !paused
-    val totalMs = state.focusMinutes * 60_000L
-    val remainingMs = when {
-        running -> (state.timerEndAt - state.nowMs).coerceIn(0L, totalMs)
-        paused -> state.timerPausedMs.coerceIn(0L, totalMs)
-        else -> totalMs
-    }
-    val targetProgress = if (totalMs == 0L) 0f else remainingMs.toFloat() / totalMs
-    val progress by animateFloatAsState(targetProgress, tween(durationMillis = 250, easing = LinearEasing), label = "timerProgress")
+    val running = store.focusEndAt != null
+    val total = store.focusMinutes * 60_000f
+    val progress = if (running) 1f - store.focusRemainingMs / total else 0f
+    val secs = (store.focusRemainingMs + 999L) / 1000L
+    val today = LocalDate.now()
 
-    val view = LocalView.current
-    DisposableEffect(running) {
-        view.keepScreenOn = running
-        onDispose { view.keepScreenOn = false }
-    }
-
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        ScreenHeader(title = "Modo Enfoque", subtitle = "Silencia el ruido y concéntrate en lo importante")
-        Spacer(Modifier.height(28.dp))
-
-        TimerRing(
-            progress = progress,
-            timeText = formatClock(remainingMs),
-            caption = when {
-                running -> "Enfocado"
-                paused -> "En pausa"
-                else -> "Listo para empezar"
-            }
+    ScreenColumn {
+        ScreenTitle("Enfoque")
+        Text(
+            "Elige una duración y bloquea el ruido. Cada minuto enfocado suma $XP_PER_FOCUS_MINUTE XP.",
+            color = TextMuted,
+            fontSize = 14.sp
         )
-        Spacer(Modifier.height(28.dp))
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            listOf(15, 25, 45, 60).forEach { minutes ->
-                Pill(
-                    text = "${minutes}m",
-                    selected = state.focusMinutes == minutes,
-                    enabled = idle,
-                    modifier = Modifier.weight(1f),
-                    onClick = { state.selectFocusMinutes(minutes) }
-                )
-            }
-        }
-        Spacer(Modifier.height(24.dp))
-
-        when {
-            idle -> Button(
-                onClick = { state.startFocus() },
-                modifier = Modifier.fillMaxWidth().height(60.dp),
-                shape = RoundedCornerShape(30.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = Ink)
-            ) {
-                Icon(Icons.Filled.PlayArrow, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Iniciar", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-            }
-
-            else -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(
-                    onClick = { if (running) state.pauseFocus() else state.resumeFocus() },
-                    modifier = Modifier.weight(1f).height(60.dp),
-                    shape = RoundedCornerShape(30.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = Ink)
+            for (m in FOCUS_OPTIONS) {
+                val selected = store.focusMinutes == m
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .alpha(if (running && !selected) 0.4f else 1f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(if (selected) accent else Navy)
+                        .clickable(enabled = !running) { store.selectFocusMinutes(m) }
+                        .padding(vertical = 14.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    if (!running) {
-                        Icon(Icons.Filled.PlayArrow, contentDescription = null)
-                        Spacer(Modifier.width(6.dp))
-                    }
-                    Text(if (running) "Pausar" else "Reanudar", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
-                }
-                OutlinedButton(
-                    onClick = { state.stopFocus() },
-                    modifier = Modifier.weight(1f).height(60.dp),
-                    shape = RoundedCornerShape(30.dp),
-                    border = BorderStroke(1.dp, Hairline),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = OnDark)
-                ) {
-                    Text("Detener", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "$m min",
+                        color = if (selected) Ink else TextMain,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }
 
-        AnimatedVisibility(
-            visible = state.lastReward > 0,
-            enter = fadeIn(tween(300)) + scaleIn(tween(300)),
-            exit = fadeOut(tween(200)) + scaleOut(tween(200))
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Ring(progress = progress, color = accent, diameter = 250.dp, stroke = 14.dp) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "%02d:%02d".format(secs / 60, secs % 60),
+                        color = TextMain,
+                        fontSize = 52.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        if (running) "Enfocado…" else "Listo para empezar",
+                        color = TextMuted,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        }
+
+        Button(
+            onClick = { if (running) store.cancelFocus() else store.startFocus() },
+            shape = RoundedCornerShape(18.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (running) Slate else accent,
+                contentColor = if (running) TextMain else Ink
+            ),
+            modifier = Modifier.fillMaxWidth().height(56.dp)
         ) {
-            Card(
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Navy, contentColor = OnDark),
-                modifier = Modifier.padding(top = 20.dp).fillMaxWidth().border(1.dp, accent, RoundedCornerShape(24.dp))
-            ) {
-                Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("¡Sesión completada!", color = accent, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Spacer(Modifier.height(4.dp))
-                    Text("Ganaste +${state.lastReward} XP por tu concentración.", color = OnDark)
+            Text(
+                if (running) "Cancelar sesión" else "Iniciar enfoque",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        AppCard {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text("Hoy", color = TextMuted, fontSize = 12.sp)
+                    Text(
+                        "${store.sessionsOn(today)} sesiones · ${store.minutesOn(today)} min",
+                        color = TextMain,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("Total", color = TextMuted, fontSize = 12.sp)
+                    Text(
+                        "${store.totalSessions()} sesiones · ${store.totalFocusMinutes()} min",
+                        color = TextMain,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }
+    }
+}
 
-        Spacer(Modifier.height(24.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            StatCard("Sesiones", state.focusSessions.toString(), Navy, Modifier.weight(1f))
-            StatCard("Minutos enfocados", state.focusTotalMinutes.toString(), Slate, Modifier.weight(1f))
-        }
-        Spacer(Modifier.height(14.dp))
-        Text("Cada minuto de enfoque completado suma 1 XP.", color = OnDarkMuted, fontSize = 13.sp, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(24.dp))
+// ─────────────────────────────────────────────────────────────────────────────
+// Progreso: Estadísticas + Logros
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun ProgressScreen(store: StarforgeStore) {
+    var section by rememberSaveable { mutableStateOf(0) }
+    ScreenColumn {
+        ScreenTitle("Progreso")
+        SegmentedTabs(listOf("Estadísticas", "Logros"), section) { section = it }
+        if (section == 0) StatsSection(store) else AchievementsSection(store)
+    }
+}
+
+private data class Tile(val emoji: String, val label: String, val value: String)
+
+@Composable
+private fun StatTile(tile: Tile, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(Navy)
+            .padding(14.dp)
+    ) {
+        Text(tile.emoji, fontSize = 20.sp)
+        Spacer(Modifier.height(6.dp))
+        Text(tile.value, color = TextMain, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Text(tile.label, color = TextMuted, fontSize = 12.sp)
     }
 }
 
 @Composable
-private fun TimerRing(progress: Float, timeText: String, caption: String) {
-    val accent = MaterialTheme.colorScheme.primary
-    Box(Modifier.size(270.dp), contentAlignment = Alignment.Center) {
-        Canvas(Modifier.fillMaxSize()) {
-            val stroke = 16.dp.toPx()
-            val half = stroke / 2f
-            val arcSize = Size(size.width - stroke, size.height - stroke)
+private fun RingStat(label: String, percent: Int, color: Color, modifier: Modifier = Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Ring(progress = percent / 100f, color = color, diameter = 78.dp, stroke = 9.dp) {
+            Text("$percent%", color = TextMain, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(label, color = TextMuted, fontSize = 12.sp, textAlign = TextAlign.Center)
+    }
+}
 
-            drawCircle(
-                brush = Brush.radialGradient(listOf(accent.copy(alpha = 0.14f), Color.Transparent), center = center, radius = size.minDimension / 2f),
-                radius = size.minDimension / 2f
+@Composable
+private fun MonthChart(rates: List<Float?>, accent: Color) {
+    val track = Slate.copy(alpha = 0.5f)
+    Canvas(Modifier.fillMaxWidth().height(120.dp)) {
+        val n = rates.size
+        if (n == 0) return@Canvas
+        val gap = 4.dp.toPx()
+        val barW = (size.width - gap * (n - 1)) / n
+        val radius = CornerRadius(barW / 2f, barW / 2f)
+        rates.forEachIndexed { i, rate ->
+            val x = i * (barW + gap)
+            drawRoundRect(
+                color = track,
+                topLeft = Offset(x, 0f),
+                size = Size(barW, size.height),
+                cornerRadius = radius
             )
-            drawCircle(color = Navy.copy(alpha = 0.65f), radius = size.minDimension / 2f - stroke * 1.5f)
-            drawArc(
-                color = Slate.copy(alpha = 0.6f),
-                startAngle = -90f,
-                sweepAngle = 360f,
-                useCenter = false,
-                topLeft = Offset(half, half),
-                size = arcSize,
-                style = Stroke(width = stroke, cap = StrokeCap.Round)
-            )
-            if (progress > 0f) {
-                drawArc(
+            if (rate != null && rate > 0f) {
+                val h = (size.height * rate).coerceAtLeast(barW)
+                drawRoundRect(
                     color = accent,
-                    startAngle = -90f,
-                    sweepAngle = 360f * progress.coerceIn(0f, 1f),
-                    useCenter = false,
-                    topLeft = Offset(half, half),
-                    size = arcSize,
-                    style = Stroke(width = stroke, cap = StrokeCap.Round)
+                    topLeft = Offset(x, size.height - h),
+                    size = Size(barW, h),
+                    cornerRadius = radius
                 )
             }
         }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(timeText, color = OnDark, fontSize = 56.sp, fontWeight = FontWeight.Light, letterSpacing = 1.sp)
-            Text(caption, color = OnDarkMuted, fontSize = 14.sp)
-        }
     }
 }
 
-// =====================================================================
-//  PESTAÑA 4: PERFIL
-// =====================================================================
-private enum class ProfileDialog { None, EditProfile, EditMission, Reset }
-
 @Composable
-private fun ProfileScreen(state: AppState) {
+private fun StatsSection(store: StarforgeStore) {
     val accent = MaterialTheme.colorScheme.primary
-    var dialog by remember { mutableStateOf(ProfileDialog.None) }
-    val levelFraction by animateFloatAsState(state.xpInLevel.toFloat() / XP_PER_LEVEL, tween(600), label = "levelProgress")
+    var offset by rememberSaveable { mutableStateOf(0) }
+    val month = YearMonth.now().plusMonths(offset.toLong())
+    val stats = store.monthStats(month)
+    val global = store.globalSuccessRate()
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        item {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = Navy, contentColor = OnDark),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Box(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Navy, NavyDeep))).padding(24.dp)) {
-                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Avatar(state.userName, 92.dp, 38.sp)
-                        Spacer(Modifier.height(14.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(state.userName, style = MaterialTheme.typography.headlineMedium, color = OnDark)
-                            IconButton(onClick = { dialog = ProfileDialog.EditProfile }) {
-                                Icon(Icons.Filled.Edit, "Editar perfil", tint = accent)
-                            }
-                        }
-                        Text("${state.userAge} años · Nivel ${state.level}", color = OnDarkMuted, style = MaterialTheme.typography.bodyLarge)
-                        Spacer(Modifier.height(18.dp))
-                        AccentBar(levelFraction, height = 10.dp)
-                        Spacer(Modifier.height(8.dp))
-                        Text("${state.xpInLevel} / $XP_PER_LEVEL XP para el nivel ${state.level + 1}", color = OnDarkMuted, fontSize = 13.sp)
-                    }
-                }
-            }
-        }
+        Box(
+            Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(Navy)
+                .clickable { offset-- },
+            contentAlignment = Alignment.Center
+        ) { Text("‹", color = TextMain, fontSize = 22.sp) }
 
-        item {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = Navy, contentColor = OnDark),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(Modifier.padding(start = 22.dp, top = 14.dp, end = 10.dp, bottom = 22.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Misión personal", color = accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
-                        IconButton(onClick = { dialog = ProfileDialog.EditMission }) {
-                            Icon(Icons.Filled.Edit, "Editar misión", tint = OnDarkMuted)
-                        }
-                    }
-                    Text(state.mission, color = OnDark, fontSize = 18.sp, lineHeight = 26.sp, modifier = Modifier.padding(end = 12.dp))
-                }
-            }
-        }
+        Text(
+            "${MONTHS_ES[month.monthValue - 1]} ${month.year}",
+            color = TextMain,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold
+        )
 
-        item {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = Slate, contentColor = OnDark),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(Modifier.padding(22.dp)) {
-                    Text("Tema de acento", style = MaterialTheme.typography.titleMedium, color = OnDark)
-                    Spacer(Modifier.height(16.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        THEMES.forEachIndexed { index, option ->
-                            ThemeSwatch(option = option, selected = state.themeIndex == index, onClick = { state.updateTheme(index) })
-                        }
-                    }
-                }
-            }
-        }
+        Box(
+            Modifier
+                .size(40.dp)
+                .alpha(if (offset < 0) 1f else 0.3f)
+                .clip(CircleShape)
+                .background(Navy)
+                .clickable(enabled = offset < 0) { offset++ },
+            contentAlignment = Alignment.Center
+        ) { Text("›", color = TextMain, fontSize = 22.sp) }
+    }
 
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatCard("Hábitos activos", state.habits.size.toString(), Navy, Modifier.weight(1f))
-                StatCard("Mejor racha", "${state.bestStreak()} d", Navy, Modifier.weight(1f))
-            }
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatCard("Sesiones de enfoque", state.focusSessions.toString(), Slate, Modifier.weight(1f))
-                StatCard("Minutos enfocados", state.focusTotalMinutes.toString(), Slate, Modifier.weight(1f))
-            }
-        }
-
-        item {
-            OutlinedButton(
-                onClick = { dialog = ProfileDialog.Reset },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(28.dp),
-                border = BorderStroke(1.dp, DangerRed),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed)
-            ) {
-                Icon(Icons.Filled.Refresh, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Reiniciar progreso", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-            }
+    AppCard {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            RingStat("Éxito del mes", stats.successRate, accent, Modifier.weight(1f))
+            RingStat("Constancia", stats.consistency, accent, Modifier.weight(1f))
+            RingStat("Éxito global", global, accent, Modifier.weight(1f))
         }
     }
 
-    when (dialog) {
-        ProfileDialog.EditProfile -> EditProfileDialog(
-            initialName = state.userName,
-            initialAge = state.userAge,
-            onDismiss = { dialog = ProfileDialog.None },
-            onSave = { name, age ->
-                state.updateProfile(name, age)
-                dialog = ProfileDialog.None
-            }
-        )
-        ProfileDialog.EditMission -> EditMissionDialog(
-            initial = state.mission,
-            onDismiss = { dialog = ProfileDialog.None },
-            onSave = {
-                state.updateMission(it)
-                dialog = ProfileDialog.None
-            }
-        )
-        ProfileDialog.Reset -> ConfirmDialog(
-            title = "Reiniciar progreso",
-            message = "Se pondrán a cero tu XP, rachas, historial de hábitos y estadísticas de enfoque. Tu perfil y tu lista de hábitos se conservan.",
-            confirmText = "Reiniciar",
-            danger = true,
-            onConfirm = {
-                state.resetProgress()
-                dialog = ProfileDialog.None
+    val tiles = listOf(
+        Tile("✅", "Check-ins del mes", "${stats.completed}/${stats.scheduled}"),
+        Tile("📅", "Días activos", "${stats.activeDays}/${stats.elapsedDays}"),
+        Tile("💯", "Días perfectos", "${stats.perfectDays}"),
+        Tile("🔥", "Mejor racha del mes", "${stats.bestRun} d"),
+        Tile("🎯", "Sesiones de enfoque", "${stats.focusSessions}"),
+        Tile("⏱️", "Minutos enfocados", "${stats.focusMinutes}")
+    )
+    for (pair in tiles.chunked(2)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            for (tile in pair) StatTile(tile, Modifier.weight(1f))
+        }
+    }
+
+    AppCard {
+        Text("Cumplimiento diario", color = TextMain, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(12.dp))
+        MonthChart(stats.dayRates, accent)
+        Spacer(Modifier.height(6.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("1", color = TextMuted, fontSize = 11.sp)
+            Text("${stats.dayRates.size}", color = TextMuted, fontSize = 11.sp)
+        }
+    }
+
+    AppCard {
+        Text("Lectura del mes", color = TextMain, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            if (stats.bestWeekday >= 0) {
+                "Tu día más fuerte es el ${DAYS_FULL[stats.bestWeekday].lowercase()}. " +
+                    "Has estado activo ${stats.activeDays} de ${stats.elapsedDays} días."
+            } else {
+                "Aún no hay actividad registrada en este mes."
             },
-            onDismiss = { dialog = ProfileDialog.None }
+            color = TextMuted,
+            fontSize = 14.sp
         )
-        ProfileDialog.None -> Unit
     }
 }
 
 @Composable
-private fun ThemeSwatch(option: ThemeOption, selected: Boolean, onClick: () -> Unit) {
-    val ring by animateColorAsState(if (selected) OnDark else Color.Transparent, tween(200), label = "swatchRing")
+private fun AchievementsSection(store: StarforgeStore) {
+    val accent = MaterialTheme.colorScheme.primary
+    val metrics = store.metrics()
+    val got = ACHIEVEMENTS.count { store.unlocked.containsKey(it.id) }
+
+    AppCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("🏆", fontSize = 34.sp)
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "$got de ${ACHIEVEMENTS.size} logros",
+                    color = TextMain,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(8.dp))
+                BarProgress(got / ACHIEVEMENTS.size.toFloat(), accent)
+            }
+        }
+    }
+
+    for (category in BadgeCategory.values()) {
+        Text(
+            "${category.emoji} ${category.label}",
+            color = TextMain,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+        for (pair in ACHIEVEMENTS.filter { it.category == category }.chunked(2)) {
+            Row(
+                Modifier.fillMaxWidth().height(IntrinsicSize.Max),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                for (a in pair) {
+                    BadgeCard(
+                        achievement = a,
+                        value = metrics.valueFor(a.category),
+                        unlockedOn = store.unlocked[a.id],
+                        modifier = Modifier.weight(1f).fillMaxHeight()
+                    )
+                }
+                if (pair.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun BadgeCard(
+    achievement: Achievement,
+    value: Int,
+    unlockedOn: String?,
+    modifier: Modifier = Modifier
+) {
+    val accent = MaterialTheme.colorScheme.primary
+    val isUnlocked = unlockedOn != null
+    val shape = RoundedCornerShape(22.dp)
+
     Column(
-        Modifier.clip(RoundedCornerShape(18.dp)).clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp),
+        modifier
+            .clip(shape)
+            .background(if (isUnlocked) Navy else Navy.copy(alpha = 0.45f))
+            .border(1.5.dp, if (isUnlocked) accent.copy(alpha = 0.75f) else Color.Transparent, shape)
+            .padding(14.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
-            Modifier.size(50.dp).clip(CircleShape).border(3.dp, ring, CircleShape).padding(5.dp).clip(CircleShape).background(option.color),
+            Modifier
+                .size(64.dp)
+                .clip(CircleShape)
+                .background(if (isUnlocked) accent.copy(alpha = 0.22f) else Slate.copy(alpha = 0.5f)),
             contentAlignment = Alignment.Center
         ) {
-            if (selected) {
-                Icon(Icons.Filled.Check, contentDescription = null, tint = Ink, modifier = Modifier.size(20.dp))
+            Text(
+                achievement.emoji,
+                fontSize = 30.sp,
+                modifier = Modifier.alpha(if (isUnlocked) 1f else 0.25f)
+            )
+            if (!isUnlocked) {
+                Icon(
+                    Icons.Filled.Lock,
+                    contentDescription = "Bloqueado",
+                    tint = TextMuted,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
-        Spacer(Modifier.height(8.dp))
-        Text(option.name, color = if (selected) OnDark else OnDarkMuted, fontSize = 13.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
+        Spacer(Modifier.height(10.dp))
+        Text(
+            achievement.title,
+            color = if (isUnlocked) TextMain else TextMuted,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            achievement.description,
+            color = TextMuted,
+            fontSize = 11.sp,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(10.dp))
+        if (isUnlocked) {
+            Text(
+                "Desbloqueado · ${prettyDate(unlockedOn ?: "")}",
+                color = accent,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center
+            )
+        } else {
+            BarProgress(value / achievement.target.toFloat(), accent, height = 6.dp)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "${minOf(value, achievement.target)}/${achievement.target} ${achievement.category.unit}",
+                color = TextMuted,
+                fontSize = 11.sp
+            )
+        }
     }
 }
 
-@Composable
-private fun EditProfileDialog(initialName: String, initialAge: Int, onDismiss: () -> Unit, onSave: (String, Int) -> Unit) {
-    var name by rememberSaveable { mutableStateOf(initialName) }
-    var ageText by rememberSaveable { mutableStateOf(initialAge.toString()) }
-    val age = ageText.toIntOrNull()
-    val valid = name.trim().isNotEmpty() && age != null && age in 1..120
+// ─────────────────────────────────────────────────────────────────────────────
+// Perfil
+// ─────────────────────────────────────────────────────────────────────────────
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = Navy,
-        titleContentColor = OnDark,
-        textContentColor = OnDark,
-        shape = RoundedCornerShape(28.dp),
-        title = { Text("Editar perfil", fontWeight = FontWeight.SemiBold) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { if (it.length <= 20) name = it },
-                    singleLine = true,
-                    label = { Text("Nombre") },
-                    shape = RoundedCornerShape(18.dp),
-                    colors = fieldColors(),
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = ageText,
-                    onValueChange = { v -> if (v.length <= 3 && v.all { it.isDigit() }) ageText = v },
-                    singleLine = true,
-                    label = { Text("Edad") },
-                    shape = RoundedCornerShape(18.dp),
-                    colors = fieldColors(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                    modifier = Modifier.fillMaxWidth()
+@Composable
+private fun ProfileScreen(store: StarforgeStore) {
+    val accent = MaterialTheme.colorScheme.primary
+    var confirmReset by remember { mutableStateOf(false) }
+
+    ScreenColumn {
+        ScreenTitle("Perfil")
+
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                Modifier.size(88.dp).clip(CircleShape).background(accent),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    store.userName.trim().firstOrNull()?.uppercase() ?: "S",
+                    color = Ink,
+                    fontSize = 38.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
-        },
-        confirmButton = {
-            TextButton(onClick = { if (valid && age != null) onSave(name, age) }, enabled = valid) {
-                Text("Guardar", color = if (valid) MaterialTheme.colorScheme.primary else OnDarkMuted, fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar", color = OnDarkMuted) }
+            Spacer(Modifier.height(10.dp))
+            Text(
+                store.userName.ifBlank { "Forjador" },
+                color = TextMain,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Nivel ${store.level} · ${store.xp} XP",
+                color = TextMuted,
+                fontSize = 14.sp
+            )
         }
-    )
-}
 
-@Composable
-private fun EditMissionDialog(initial: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
-    var text by rememberSaveable { mutableStateOf(initial) }
-    val valid = text.trim().isNotEmpty()
+        AppCard {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Progreso al nivel ${store.level + 1}", color = TextMain, fontWeight = FontWeight.SemiBold)
+                Text("${store.xpInLevel}/$XP_PER_LEVEL", color = TextMuted, fontSize = 13.sp)
+            }
+            Spacer(Modifier.height(10.dp))
+            BarProgress(store.xpInLevel / XP_PER_LEVEL.toFloat(), accent)
+            Spacer(Modifier.height(14.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text("🔥 Racha: ${store.currentStreak()} d", color = TextMain, fontSize = 13.sp)
+                Text("🏅 Mejor: ${store.bestStreak()} d", color = TextMain, fontSize = 13.sp)
+                Text("🏆 ${store.unlocked.size}/${ACHIEVEMENTS.size}", color = TextMain, fontSize = 13.sp)
+            }
+        }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = Navy,
-        titleContentColor = OnDark,
-        textContentColor = OnDark,
-        shape = RoundedCornerShape(28.dp),
-        title = { Text("Misión personal", fontWeight = FontWeight.SemiBold) },
-        text = {
+        AppCard {
+            Text("Datos personales", color = TextMain, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = store.userName,
+                    onValueChange = { store.updateName(it) },
+                    label = { Text("Nombre") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = fieldColors(),
+                    modifier = Modifier.weight(2f)
+                )
+                OutlinedTextField(
+                    value = store.userAge,
+                    onValueChange = { store.updateAge(it) },
+                    label = { Text("Edad") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = fieldColors(),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Spacer(Modifier.height(12.dp))
             OutlinedTextField(
-                value = text,
-                onValueChange = { if (it.length <= 140) text = it },
-                minLines = 3,
-                maxLines = 5,
-                placeholder = { Text("¿Qué quieres lograr?") },
-                supportingText = { Text("${text.length}/140", color = OnDarkMuted) },
-                shape = RoundedCornerShape(18.dp),
+                value = store.mission,
+                onValueChange = { store.updateMission(it) },
+                label = { Text("Misión personal") },
+                maxLines = 3,
+                shape = RoundedCornerShape(16.dp),
                 colors = fieldColors(),
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = Modifier.fillMaxWidth()
             )
-        },
-        confirmButton = {
-            TextButton(onClick = { if (valid) onSave(text) }, enabled = valid) {
-                Text("Guardar", color = if (valid) MaterialTheme.colorScheme.primary else OnDarkMuted, fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar", color = OnDarkMuted) }
         }
-    )
+
+        AppCard {
+            Text("Tema de acento", color = TextMain, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(12.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                for (t in AppTheme.values()) {
+                    val selected = store.theme == t
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(if (selected) Ink.copy(alpha = 0.6f) else Color.Transparent)
+                            .clickable { store.updateTheme(t) }
+                            .padding(vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(t.accent)
+                                .border(
+                                    if (selected) 3.dp else 0.dp,
+                                    if (selected) TextMain else Color.Transparent,
+                                    CircleShape
+                                )
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            t.label,
+                            color = if (selected) TextMain else TextMuted,
+                            fontSize = 13.sp,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+        }
+
+        OutlinedButton(
+            onClick = { confirmReset = true },
+            shape = RoundedCornerShape(18.dp),
+            modifier = Modifier.fillMaxWidth().height(52.dp)
+        ) {
+            Text("Reiniciar progreso", color = TextMuted)
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+
+    if (confirmReset) {
+        AlertDialog(
+            onDismissRequest = { confirmReset = false },
+            containerColor = Navy,
+            title = { Text("Reiniciar progreso", color = TextMain) },
+            text = {
+                Text(
+                    "Se borrarán hábitos, historial, XP, estadísticas y logros. Esta acción no se puede deshacer.",
+                    color = TextMuted
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    store.resetProgress()
+                    confirmReset = false
+                }) { Text("Reiniciar", color = accent) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmReset = false }) { Text("Cancelar", color = TextMuted) }
+            }
+        )
+    }
 }
