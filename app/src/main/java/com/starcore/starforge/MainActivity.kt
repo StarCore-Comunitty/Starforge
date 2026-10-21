@@ -34,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -52,7 +51,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.YearMonth
 import kotlin.math.roundToInt
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -91,13 +89,16 @@ private const val K_THEME = "theme"
 private const val K_XP = "xp"
 private const val K_HABITS = "habits_json"
 private const val K_COMPLETIONS = "completions_json"
+private const val K_MIN_COMPLETIONS = "min_completions_json"
 private const val K_FOCUS_LOG = "focus_log_json"
 private const val K_FOCUS_MIN = "focus_minutes"
 private const val K_FOCUS_END = "focus_end_at"
 private const val K_UNLOCKED = "unlocked_badges_json"
 private const val K_NOTES = "notes_json"
+private const val K_CATEGORY_XP = "category_xp_json"
 
 private const val XP_PER_HABIT = 10
+private const val XP_PER_MIN_HABIT = 4
 private const val XP_PER_FOCUS_MINUTE = 2
 private const val XP_PER_LEVEL = 100
 private const val DEFAULT_MISSION = "Forjar disciplina cada día y convertirme en mi mejor versión."
@@ -105,14 +106,15 @@ private const val DEFAULT_MISSION = "Forjar disciplina cada día y convertirme e
 private val FOCUS_OPTIONS = listOf(15, 25, 45, 60)
 private val DAYS_SHORT = listOf("L", "M", "X", "J", "V", "S", "D")
 private val DAYS_FULL = listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")
+private val CATEGORIES = listOf("Disciplina", "Salud", "Mente", "Cuerpo")
+
 private val QUOTES = listOf(
     "Cada día que cumples contigo mismo forja a la persona que quieres ser.",
     "La constancia silenciosa vence al talento que se distrae.",
     "No esperes motivación: construye el hábito y ella te alcanzará.",
     "Un paso pequeño hoy pesa más que un plan perfecto mañana.",
     "Tu futuro se escribe con lo que repites, no con lo que prometes.",
-    "La disciplina es una forma de respeto hacia tu yo del futuro.",
-    "Forja tu mejor versión: un hábito a la vez."
+    "La disciplina es una forma de respeto hacia tu yo del futuro."
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -123,8 +125,9 @@ data class Habit(
     val id: Long,
     val name: String,
     val created: String,
-    val days: List<Int> = listOf(1, 2, 3, 4, 5, 6, 7), // 1=Lunes a 7=Domingo
-    val category: String = "General"
+    val days: List<Int> = listOf(1, 2, 3, 4, 5, 6, 7),
+    val category: String = "Disciplina",
+    val minVersion: String = ""
 )
 
 enum class BadgeCategory(val label: String, val emoji: String, val unit: String) {
@@ -162,27 +165,16 @@ val ACHIEVEMENTS: List<Achievement> = listOf(
     Achievement("streak_3", "🔥", "Chispa", "Racha de 3 días seguidos", BadgeCategory.STREAK, 3),
     Achievement("streak_7", "⚡", "Semana de Fuego", "Racha de 7 días seguidos", BadgeCategory.STREAK, 7),
     Achievement("streak_14", "🛡️", "Voluntad de Acero", "Racha de 14 días seguidos", BadgeCategory.STREAK, 14),
-    Achievement("streak_30", "👑", "Maestro de la Constancia", "Racha de 30 días seguidos", BadgeCategory.STREAK, 30),
-    Achievement("streak_60", "🏆", "Leyenda Imparable", "Racha de 60 días seguidos", BadgeCategory.STREAK, 60),
     Achievement("xp_100", "✨", "Primer Destello", "Acumula 100 XP", BadgeCategory.XP, 100),
     Achievement("xp_500", "🌟", "Aprendiz Forjador", "Acumula 500 XP", BadgeCategory.XP, 500),
-    Achievement("xp_1000", "💎", "Cristal de Voluntad", "Acumula 1.000 XP", BadgeCategory.XP, 1000),
-    Achievement("xp_2500", "🚀", "Ascenso Estelar", "Acumula 2.500 XP", BadgeCategory.XP, 2500),
-    Achievement("xp_5000", "🌌", "Forjador de Estrellas", "Acumula 5.000 XP", BadgeCategory.XP, 5000),
     Achievement("focus_1", "🎯", "Primer Enfoque", "Completa 1 sesión de enfoque", BadgeCategory.FOCUS, 1),
-    Achievement("focus_5", "🧠", "Mente Clara", "Completa 5 sesiones de enfoque", BadgeCategory.FOCUS, 5),
     Achievement("focus_10", "⏳", "Dueño del Tiempo", "Completa 10 sesiones de enfoque", BadgeCategory.FOCUS, 10),
-    Achievement("focus_25", "🧘", "Monje Digital", "Completa 25 sesiones de enfoque", BadgeCategory.FOCUS, 25),
-    Achievement("focus_50", "🔮", "Concentración Absoluta", "Completa 50 sesiones de enfoque", BadgeCategory.FOCUS, 50),
     Achievement("habit_1", "✅", "Primer Paso", "Marca tu primer hábito", BadgeCategory.HABITS, 1),
-    Achievement("habit_25", "📈", "En Marcha", "Completa 25 hábitos", BadgeCategory.HABITS, 25),
-    Achievement("habit_100", "💪", "Centenario", "Completa 100 hábitos", BadgeCategory.HABITS, 100),
-    Achievement("habit_250", "🏅", "Hábito de Hierro", "Completa 250 hábitos", BadgeCategory.HABITS, 250),
-    Achievement("habit_500", "🌠", "Imparable", "Completa 500 hábitos", BadgeCategory.HABITS, 500)
+    Achievement("habit_25", "📈", "En Marcha", "Completa 25 hábitos", BadgeCategory.HABITS, 25)
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Almacenamiento centralizado (StarforgeStore)
+// Almacenamiento Centralizado (StarforgeStore)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class StarforgeStore(private val prefs: SharedPreferences) {
@@ -209,24 +201,28 @@ class StarforgeStore(private val prefs: SharedPreferences) {
 
     val habits = mutableStateListOf<Habit>()
     val completions = mutableStateMapOf<String, Set<Long>>()
+    val minCompletions = mutableStateMapOf<String, Set<Long>>()
     val focusLog = mutableStateMapOf<String, List<Int>>()
     val unlocked = mutableStateMapOf<String, String>()
     val notes = mutableStateMapOf<String, String>()
+    val categoryXp = mutableStateMapOf<String, Int>()
 
     init {
         if (prefs.contains(K_HABITS)) {
             habits.addAll(loadHabits())
         } else {
             val today = LocalDate.now().toString()
-            habits.add(Habit(1L, "Beber 2 litros de agua", today, listOf(1,2,3,4,5,6,7), "Salud"))
-            habits.add(Habit(2L, "Leer 10 páginas", today, listOf(1,2,3,4,5,6,7), "Mente"))
-            habits.add(Habit(3L, "Ejercicio 20 minutos", today, listOf(1,3,5), "Cuerpo"))
+            habits.add(Habit(1L, "Beber 2 litros de agua", today, listOf(1,2,3,4,5,6,7), "Salud", "1 vaso de agua"))
+            habits.add(Habit(2L, "Leer 10 páginas", today, listOf(1,2,3,4,5,6,7), "Mente", "Leer 2 páginas"))
+            habits.add(Habit(3L, "Ejercicio 20 minutos", today, listOf(1,3,5), "Cuerpo", "5 min de estiramiento"))
             saveHabits()
         }
-        completions.putAll(loadCompletions())
+        completions.putAll(loadCompletions(K_COMPLETIONS))
+        minCompletions.putAll(loadCompletions(K_MIN_COMPLETIONS))
         focusLog.putAll(loadFocusLog())
         unlocked.putAll(loadUnlocked())
         notes.putAll(loadNotes())
+        categoryXp.putAll(loadCategoryXp())
         evaluateBadges()
     }
 
@@ -255,17 +251,20 @@ class StarforgeStore(private val prefs: SharedPreferences) {
         prefs.edit().putString(K_THEME, value.name).apply()
     }
 
-    // Filtra hábitos creados y que correspondan al día de la semana (1=Lunes .. 7=Domingo)
     fun habitsFor(date: LocalDate): List<Habit> {
         val key = date.toString()
-        val dayOfWeek = date.dayOfWeek.value
-        return habits.filter { it.created <= key && dayOfWeek in it.days }
+        val dow = date.dayOfWeek.value
+        return habits.filter { it.created <= key && dow in it.days }
     }
 
     fun isDone(habitId: Long, date: LocalDate): Boolean =
         completions[date.toString()]?.contains(habitId) == true
 
-    fun doneCount(date: LocalDate): Int = completions[date.toString()]?.size ?: 0
+    fun isMinDone(habitId: Long, date: LocalDate): Boolean =
+        minCompletions[date.toString()]?.contains(habitId) == true
+
+    fun doneCount(date: LocalDate): Int =
+        (completions[date.toString()]?.size ?: 0) + (minCompletions[date.toString()]?.size ?: 0)
 
     fun canEdit(date: LocalDate): Boolean = !date.isAfter(LocalDate.now())
 
@@ -273,20 +272,16 @@ class StarforgeStore(private val prefs: SharedPreferences) {
 
     fun updateNote(date: LocalDate, text: String) {
         val key = date.toString()
-        if (text.isBlank()) {
-            notes.remove(key)
-        } else {
-            notes[key] = text.take(300)
-        }
+        if (text.isBlank()) notes.remove(key) else notes[key] = text.take(300)
         saveNotes()
     }
 
-    fun addHabit(name: String, selectedDays: List<Int>, category: String) {
+    fun addHabit(name: String, days: List<Int>, category: String, minVersion: String) {
         val clean = name.trim().take(40)
         if (clean.isEmpty()) return
         var id = System.currentTimeMillis()
         while (habits.any { it.id == id }) id++
-        habits.add(Habit(id, clean, LocalDate.now().toString(), selectedDays, category))
+        habits.add(Habit(id, clean, LocalDate.now().toString(), days, category, minVersion))
         saveHabits()
     }
 
@@ -294,34 +289,82 @@ class StarforgeStore(private val prefs: SharedPreferences) {
         habits.removeAll { it.id == habit.id }
         for (key in completions.keys.toList()) {
             val ids = completions[key] ?: continue
-            if (habit.id in ids) {
-                val next = ids - habit.id
-                if (next.isEmpty()) completions.remove(key) else completions[key] = next
-            }
+            if (habit.id in ids) completions[key] = ids - habit.id
+        }
+        for (key in minCompletions.keys.toList()) {
+            val ids = minCompletions[key] ?: continue
+            if (habit.id in ids) minCompletions[key] = ids - habit.id
         }
         saveHabits()
-        saveCompletions()
+        saveCompletions(K_COMPLETIONS, completions)
+        saveCompletions(K_MIN_COMPLETIONS, minCompletions)
     }
 
-    fun toggleHabit(habit: Habit, date: LocalDate) {
+    fun toggleHabit(habit: Habit, date: LocalDate, asMinimum: Boolean) {
         if (!canEdit(date)) return
         val key = date.toString()
-        val current = completions[key] ?: emptySet()
-        if (habit.id in current) {
-            val next = current - habit.id
-            if (next.isEmpty()) completions.remove(key) else completions[key] = next
-            changeXp(-XP_PER_HABIT)
+        val normalSet = completions[key] ?: emptySet()
+        val minSet = minCompletions[key] ?: emptySet()
+
+        val isAlreadyNormal = habit.id in normalSet
+        val isAlreadyMin = habit.id in minSet
+
+        if (asMinimum) {
+            if (isAlreadyMin) {
+                minCompletions[key] = minSet - habit.id
+                changeXp(-XP_PER_MIN_HABIT)
+                addCategoryXp(habit.category, -XP_PER_MIN_HABIT)
+            } else {
+                if (isAlreadyNormal) {
+                    completions[key] = normalSet - habit.id
+                    changeXp(-XP_PER_HABIT)
+                    addCategoryXp(habit.category, -XP_PER_HABIT)
+                }
+                minCompletions[key] = minSet + habit.id
+                changeXp(XP_PER_MIN_HABIT)
+                addCategoryXp(habit.category, XP_PER_MIN_HABIT)
+            }
         } else {
-            completions[key] = current + habit.id
-            changeXp(XP_PER_HABIT)
+            if (isAlreadyNormal) {
+                completions[key] = normalSet - habit.id
+                changeXp(-XP_PER_HABIT)
+                addCategoryXp(habit.category, -XP_PER_HABIT)
+            } else {
+                if (isAlreadyMin) {
+                    minCompletions[key] = minSet - habit.id
+                    changeXp(-XP_PER_MIN_HABIT)
+                    addCategoryXp(habit.category, -XP_PER_MIN_HABIT)
+                }
+                completions[key] = normalSet + habit.id
+                changeXp(XP_PER_HABIT)
+                addCategoryXp(habit.category, XP_PER_HABIT)
+            }
         }
-        saveCompletions()
+        saveCompletions(K_COMPLETIONS, completions)
+        saveCompletions(K_MIN_COMPLETIONS, minCompletions)
         evaluateBadges()
     }
 
     private fun changeXp(delta: Int) {
         xp = (xp + delta).coerceAtLeast(0)
         prefs.edit().putInt(K_XP, xp).apply()
+    }
+
+    private fun addCategoryXp(category: String, delta: Int) {
+        val current = categoryXp[category] ?: 0
+        val next = (current + delta).coerceAtLeast(0)
+        categoryXp[category] = next
+        saveCategoryXp()
+    }
+
+    fun categoryLevel(category: String): Int {
+        val x = categoryXp[category] ?: 0
+        return x / 100 + 1
+    }
+
+    fun categoryXpInLevel(category: String): Int {
+        val x = categoryXp[category] ?: 0
+        return x % 100
     }
 
     fun selectFocusMinutes(minutes: Int) {
@@ -354,6 +397,7 @@ class StarforgeStore(private val prefs: SharedPreferences) {
         saveFocusLog()
         val gained = minutes * XP_PER_FOCUS_MINUTE
         changeXp(gained)
+        addCategoryXp("Mente", gained)
         toast = "🎯 Sesión de $minutes min completada · +$gained XP"
         evaluateBadges()
     }
@@ -365,9 +409,9 @@ class StarforgeStore(private val prefs: SharedPreferences) {
 
     fun currentStreak(): Int {
         val today = LocalDate.now()
-        var day = if (completions.containsKey(today.toString())) today else today.minusDays(1)
+        var day = if (doneCount(today) > 0) today else today.minusDays(1)
         var count = 0
-        while (completions.containsKey(day.toString())) {
+        while (doneCount(day) > 0) {
             count++
             day = day.minusDays(1)
         }
@@ -375,21 +419,24 @@ class StarforgeStore(private val prefs: SharedPreferences) {
     }
 
     fun bestStreak(): Int {
-        val dates = completions.keys
+        val allDates = (completions.keys + minCompletions.keys).distinct()
             .mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }
             .sorted()
         var best = 0
         var run = 0
         var prev: LocalDate? = null
-        for (d in dates) {
-            run = if (prev != null && prev.plusDays(1) == d) run + 1 else 1
-            if (run > best) best = run
-            prev = d
+        for (d in allDates) {
+            if (doneCount(d) > 0) {
+                run = if (prev != null && prev.plusDays(1) == d) run + 1 else 1
+                if (run > best) best = run
+                prev = d
+            }
         }
         return best
     }
 
-    fun totalCheckIns(): Int = completions.values.sumOf { it.size }
+    fun totalCheckIns(): Int =
+        completions.values.sumOf { it.size } + minCompletions.values.sumOf { it.size }
 
     fun metrics(): Metrics = Metrics(
         currentStreak = currentStreak(),
@@ -408,11 +455,7 @@ class StarforgeStore(private val prefs: SharedPreferences) {
         val today = LocalDate.now().toString()
         newly.forEach { unlocked[it.id] = today }
         saveUnlocked()
-        toast = if (newly.size == 1) {
-            "🏆 ¡Logro desbloqueado: ${newly[0].title}!"
-        } else {
-            "🏆 ¡${newly.size} logros desbloqueados!"
-        }
+        toast = "🏆 ¡Logro desbloqueado: ${newly[0].title}!"
     }
 
     fun globalSuccessRate(): Int {
@@ -424,46 +467,40 @@ class StarforgeStore(private val prefs: SharedPreferences) {
         var scheduledTotal = 0
         var doneTotal = 0
         while (!date.isAfter(today)) {
-            val scheduled = habitsFor(date).size
-            scheduledTotal += scheduled
-            doneTotal += minOf(doneCount(date), scheduled)
+            val sched = habitsFor(date).size
+            scheduledTotal += sched
+            doneTotal += minOf(doneCount(date), sched)
             date = date.plusDays(1)
         }
         return if (scheduledTotal > 0) (doneTotal * 100f / scheduledTotal).roundToInt() else 0
     }
 
-    fun exportData(): String {
-        val obj = JSONObject()
-        obj.put(K_NAME, userName)
-        obj.put(K_XP, xp)
-        obj.put(K_HABITS, prefs.getString(K_HABITS, "[]"))
-        obj.put(K_COMPLETIONS, prefs.getString(K_COMPLETIONS, "{}"))
-        obj.put(K_NOTES, prefs.getString(K_NOTES, "{}"))
-        return obj.toString()
-    }
-
     fun resetProgress() {
         habits.clear()
         completions.clear()
+        minCompletions.clear()
         focusLog.clear()
         unlocked.clear()
         notes.clear()
+        categoryXp.clear()
         xp = 0
         focusEndAt = null
         focusRemainingMs = focusMinutes * 60_000L
         selectedDate = LocalDate.now()
         saveHabits()
-        saveCompletions()
+        saveCompletions(K_COMPLETIONS, completions)
+        saveCompletions(K_MIN_COMPLETIONS, minCompletions)
         saveFocusLog()
         saveUnlocked()
         saveNotes()
+        saveCategoryXp()
         saveFocusTimer()
         prefs.edit().putInt(K_XP, 0).apply()
     }
 
     private fun loadTheme(): AppTheme = try {
         AppTheme.valueOf(prefs.getString(K_THEME, AppTheme.GOLD.name) ?: AppTheme.GOLD.name)
-    } catch (e: IllegalArgumentException) {
+    } catch (e: Exception) {
         AppTheme.GOLD
     }
 
@@ -487,7 +524,8 @@ class StarforgeStore(private val prefs: SharedPreferences) {
                         name = o.getString("name"),
                         created = o.optString("created", LocalDate.now().toString()),
                         days = daysList,
-                        category = o.optString("category", "General")
+                        category = o.optString("category", "Disciplina"),
+                        minVersion = o.optString("minVersion", "")
                     )
                 )
             }
@@ -497,8 +535,8 @@ class StarforgeStore(private val prefs: SharedPreferences) {
         }
     }
 
-    private fun loadCompletions(): Map<String, Set<Long>> {
-        val raw = prefs.getString(K_COMPLETIONS, null) ?: return emptyMap()
+    private fun loadCompletions(prefKey: String): Map<String, Set<Long>> {
+        val raw = prefs.getString(prefKey, null) ?: return emptyMap()
         return try {
             val obj = JSONObject(raw)
             val map = LinkedHashMap<String, Set<Long>>()
@@ -555,6 +593,18 @@ class StarforgeStore(private val prefs: SharedPreferences) {
         }
     }
 
+    private fun loadCategoryXp(): Map<String, Int> {
+        val raw = prefs.getString(K_CATEGORY_XP, null) ?: return emptyMap()
+        return try {
+            val obj = JSONObject(raw)
+            val map = LinkedHashMap<String, Int>()
+            for (key in obj.keys()) map[key] = obj.getInt(key)
+            map
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
+
     private fun saveHabits() {
         val arr = JSONArray()
         for (h in habits) {
@@ -564,15 +614,16 @@ class StarforgeStore(private val prefs: SharedPreferences) {
                 .put("created", h.created)
                 .put("days", JSONArray(h.days))
                 .put("category", h.category)
+                .put("minVersion", h.minVersion)
             arr.put(o)
         }
         prefs.edit().putString(K_HABITS, arr.toString()).apply()
     }
 
-    private fun saveCompletions() {
+    private fun saveCompletions(prefKey: String, map: Map<String, Set<Long>>) {
         val obj = JSONObject()
-        for ((day, ids) in completions) obj.put(day, JSONArray(ids.toList()))
-        prefs.edit().putString(K_COMPLETIONS, obj.toString()).apply()
+        for ((day, ids) in map) obj.put(day, JSONArray(ids.toList()))
+        prefs.edit().putString(prefKey, obj.toString()).apply()
     }
 
     private fun saveFocusLog() {
@@ -591,6 +642,12 @@ class StarforgeStore(private val prefs: SharedPreferences) {
         val obj = JSONObject()
         for ((day, text) in notes) obj.put(day, text)
         prefs.edit().putString(K_NOTES, obj.toString()).apply()
+    }
+
+    private fun saveCategoryXp() {
+        val obj = JSONObject()
+        for ((cat, value) in categoryXp) obj.put(cat, value)
+        prefs.edit().putString(K_CATEGORY_XP, obj.toString()).apply()
     }
 
     private fun saveFocusTimer() {
@@ -730,8 +787,8 @@ fun StarforgeApp(store: StarforgeStore) {
         if (showAdd) {
             AddHabitDialog(
                 onDismiss = { showAdd = false },
-                onAdd = { name, days, cat ->
-                    store.addHabit(name, days, cat)
+                onAdd = { name, days, cat, minV ->
+                    store.addHabit(name, days, cat, minV)
                     showAdd = false
                 }
             )
@@ -851,13 +908,13 @@ private fun fieldColors() = OutlinedTextFieldDefaults.colors(
     cursorColor = MaterialTheme.colorScheme.primary
 )
 
-private fun longDate(date: LocalDate): String =
-    "${DAYS_FULL[date.dayOfWeek.value - 1]} ${date.dayOfMonth} de ${MONTHS_ES[date.monthValue - 1].lowercase()}"
-
 private val MONTHS_ES = listOf(
     "enero", "febrero", "marzo", "abril", "mayo", "junio",
     "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
 )
+
+private fun longDate(date: LocalDate): String =
+    "${DAYS_FULL[date.dayOfWeek.value - 1]} ${date.dayOfMonth} de ${MONTHS_ES[date.monthValue - 1]}"
 
 @Composable
 private fun WeekStrip(store: StarforgeStore) {
@@ -880,17 +937,8 @@ private fun WeekStrip(store: StarforgeStore) {
                     .padding(vertical = 10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    DAYS_SHORT[i],
-                    color = if (selected) Ink else TextMuted,
-                    fontSize = 12.sp
-                )
-                Text(
-                    "${date.dayOfMonth}",
-                    color = if (selected) Ink else TextMain,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(DAYS_SHORT[i], color = if (selected) Ink else TextMuted, fontSize = 12.sp)
+                Text("${date.dayOfMonth}", color = if (selected) Ink else TextMain, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 Box(
                     Modifier
                         .padding(top = 4.dp)
@@ -910,7 +958,7 @@ private fun WeekStrip(store: StarforgeStore) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pantalla de Inicio
+// Pantalla de Inicio (Con Misión Semanal y Forge Path)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -919,7 +967,7 @@ private fun HomeScreen(store: StarforgeStore) {
     val today = LocalDate.now()
     val date = store.selectedDate
     val dayHabits = store.habitsFor(date)
-    val done = dayHabits.count { store.isDone(it.id, date) }
+    val done = dayHabits.count { store.isDone(it.id, date) || store.isMinDone(it.id, date) }
     val progress = if (dayHabits.isEmpty()) 0f else done / dayHabits.size.toFloat()
     val hour = LocalTime.now().hour
     val greeting = when {
@@ -940,29 +988,16 @@ private fun HomeScreen(store: StarforgeStore) {
 
         WeekStrip(store)
 
+        // Anillo de Progreso Diario
         AppCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Ring(progress = progress, color = accent, diameter = 96.dp, stroke = 10.dp) {
-                    Text(
-                        "${(progress * 100).roundToInt()}%",
-                        color = TextMain,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("${(progress * 100).roundToInt()}%", color = TextMain, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.width(18.dp))
                 Column {
-                    Text(
-                        if (date == today) "Progreso de hoy" else "Progreso del ${longDate(date)}",
-                        color = TextMain,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        "$done de ${dayHabits.size} hábitos",
-                        color = TextMuted,
-                        fontSize = 13.sp
-                    )
+                    Text(if (date == today) "Progreso de hoy" else "Progreso del ${longDate(date)}", color = TextMain, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text("$done de ${dayHabits.size} hábitos", color = TextMuted, fontSize = 13.sp)
                     Spacer(Modifier.height(6.dp))
                     Text(
                         when {
@@ -977,8 +1012,25 @@ private fun HomeScreen(store: StarforgeStore) {
             }
         }
 
+        // Misión Semanal Dinámica
         AppCard {
-            Text("📊 Resumen de Rendimiento", color = TextMain, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("🎯 Misión de la Semana", color = accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(4.dp))
+                    Text("Completa 10 check-ins esta semana", color = TextMain, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(8.dp))
+                    val checkInsThisWeek = store.totalCheckIns().coerceAtMost(10)
+                    BarProgress(checkInsThisWeek / 10f, accent, height = 6.dp)
+                }
+                Spacer(Modifier.width(12.dp))
+                Text("$checkInsThisWeek/10", color = TextMain, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+        }
+
+        // Resumen de Rendimiento
+        AppCard {
+            Text("📊 Resumen General", color = TextMain, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Column(Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).background(Ink.copy(alpha = 0.4f)).padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -999,6 +1051,7 @@ private fun HomeScreen(store: StarforgeStore) {
             }
         }
 
+        // Nota / Reflexión del Día
         AppCard {
             Text("📝 Nota o Reflexión", color = TextMain, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
             Spacer(Modifier.height(8.dp))
@@ -1016,6 +1069,7 @@ private fun HomeScreen(store: StarforgeStore) {
             )
         }
 
+        // Frase del Día
         Box(
             Modifier
                 .fillMaxWidth()
@@ -1026,18 +1080,14 @@ private fun HomeScreen(store: StarforgeStore) {
             Column {
                 Text("FRASE DEL DÍA", color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    "“${QUOTES[today.dayOfYear % QUOTES.size]}”",
-                    color = TextMain,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Medium
-                )
+                Text("“${QUOTES[LocalDate.now().dayOfYear % QUOTES.size]}”", color = TextMain, fontSize = 17.sp, fontWeight = FontWeight.Medium)
             }
         }
 
+        // Nivel General
         AppCard {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Nivel ${store.level}", color = TextMain, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Nivel ${store.level} (General)", color = TextMain, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Text("${store.xpInLevel}/$XP_PER_LEVEL XP", color = TextMuted, fontSize = 13.sp)
             }
             Spacer(Modifier.height(10.dp))
@@ -1047,7 +1097,7 @@ private fun HomeScreen(store: StarforgeStore) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pantalla de Hábitos
+// Pantalla de Hábitos (Con Versión Mínima y Categorías)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -1057,7 +1107,7 @@ private fun HabitsScreen(store: StarforgeStore) {
     val date = store.selectedDate
     val list = store.habitsFor(date)
     val editable = store.canEdit(date)
-    val done = list.count { store.isDone(it.id, date) }
+    val done = list.count { store.isDone(it.id, date) || store.isMinDone(it.id, date) }
     var toDelete by remember { mutableStateOf<Habit?>(null) }
 
     ScreenColumn {
@@ -1092,11 +1142,7 @@ private fun HabitsScreen(store: StarforgeStore) {
 
         if (list.isEmpty()) {
             AppCard {
-                Text(
-                    "No hay hábitos programados para este día. Toca + para agregar uno.",
-                    color = TextMuted,
-                    fontSize = 14.sp
-                )
+                Text("No hay hábitos programados para este día. Toca + para agregar uno.", color = TextMuted, fontSize = 14.sp)
             }
         } else {
             for (habit in list) {
@@ -1104,8 +1150,10 @@ private fun HabitsScreen(store: StarforgeStore) {
                     HabitRow(
                         habit = habit,
                         done = store.isDone(habit.id, date),
+                        minDone = store.isMinDone(habit.id, date),
                         enabled = editable,
-                        onToggle = { store.toggleHabit(habit, date) },
+                        onToggleNormal = { store.toggleHabit(habit, date, asMinimum = false) },
+                        onToggleMin = { store.toggleHabit(habit, date, asMinimum = true) },
                         onDelete = { toDelete = habit }
                     )
                 }
@@ -1120,12 +1168,7 @@ private fun HabitsScreen(store: StarforgeStore) {
             onDismissRequest = { toDelete = null },
             containerColor = Navy,
             title = { Text("Eliminar hábito", color = TextMain) },
-            text = {
-                Text(
-                    "¿Eliminar “${habit.name}” y su historial? Tus logros y XP se conservan.",
-                    color = TextMuted
-                )
-            },
+            text = { Text("¿Eliminar “${habit.name}” y su historial? Tus logros y XP se conservan.", color = TextMuted) },
             confirmButton = {
                 TextButton(onClick = {
                     store.deleteHabit(habit)
@@ -1143,8 +1186,10 @@ private fun HabitsScreen(store: StarforgeStore) {
 private fun HabitRow(
     habit: Habit,
     done: Boolean,
+    minDone: Boolean,
     enabled: Boolean,
-    onToggle: () -> Unit,
+    onToggleNormal: () -> Unit,
+    onToggleMin: () -> Unit,
     onDelete: () -> Unit
 ) {
     val accent = MaterialTheme.colorScheme.primary
@@ -1153,37 +1198,49 @@ private fun HabitRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .background(Navy)
-            .clickable(enabled = enabled) { onToggle() }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Check normal
         Box(
             Modifier
                 .size(28.dp)
                 .clip(CircleShape)
                 .background(if (done) accent else Color.Transparent)
-                .border(2.dp, if (done) accent else TextMuted, CircleShape),
+                .border(2.dp, if (done) accent else TextMuted, CircleShape)
+                .clickable(enabled = enabled) { onToggleNormal() },
             contentAlignment = Alignment.Center
         ) {
-            if (done) {
-                Icon(Icons.Filled.Check, contentDescription = null, tint = Ink, modifier = Modifier.size(18.dp))
-            }
+            if (done) Icon(Icons.Filled.Check, contentDescription = null, tint = Ink, modifier = Modifier.size(18.dp))
         }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(
                 habit.name,
-                color = if (done) TextMuted else TextMain,
+                color = if (done || minDone) TextMuted else TextMain,
                 fontSize = 16.sp,
-                textDecoration = if (done) TextDecoration.LineThrough else null
+                textDecoration = if (done || minDone) TextDecoration.LineThrough else null
             )
             Spacer(Modifier.height(2.dp))
-            Text(
-                habit.category,
-                color = accent.copy(alpha = 0.8f),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(habit.category, color = accent.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                if (habit.minVersion.isNotBlank()) {
+                    Text("• Mín: ${habit.minVersion}", color = TextMuted, fontSize = 11.sp)
+                }
+            }
+        }
+        // Botón Versión Mínima de Resiliencia
+        if (habit.minVersion.isNotBlank() && !done) {
+            Box(
+                Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (minDone) accent.copy(alpha = 0.3f) else Slate)
+                    .clickable(enabled = enabled) { onToggleMin() }
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(if (minDone) "Mínimo OK" else "Mín", color = if (minDone) accent else TextMain, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.width(6.dp))
         }
         IconButton(onClick = onDelete) {
             Icon(Icons.Filled.Delete, contentDescription = "Eliminar", tint = TextMuted)
@@ -1192,26 +1249,54 @@ private fun HabitRow(
 }
 
 @Composable
-private fun AddHabitDialog(onDismiss: () -> Unit, onAdd: (String, List<Int>, String) -> Unit) {
+private fun AddHabitDialog(onDismiss: () -> Unit, onAdd: (String, List<Int>, String, String) -> Unit) {
     var text by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("Salud") }
+    var category by remember { mutableStateOf("Disciplina") }
+    var minVersion by remember { mutableStateOf("") }
     val selectedDays = remember { mutableStateListOf(1, 2, 3, 4, 5, 6, 7) }
     val accent = MaterialTheme.colorScheme.primary
 
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Navy,
-        title = { Text("Nuevo hábito con frecuencia", color = TextMain) },
+        title = { Text("Nuevo hábito con resiliencia", color = TextMain) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
                 OutlinedTextField(
                     value = text,
                     onValueChange = { if (it.length <= 40) text = it },
                     singleLine = true,
-                    placeholder = { Text("Ej. Entrenar fuerte", color = TextMuted) },
+                    placeholder = { Text("Ej. Leer un libro", color = TextMuted) },
                     shape = RoundedCornerShape(16.dp),
                     colors = fieldColors()
                 )
+
+                OutlinedTextField(
+                    value = minVersion,
+                    onValueChange = { if (it.length <= 30) minVersion = it },
+                    singleLine = true,
+                    placeholder = { Text("Versión mínima (opcional, ej. 2 páginas)", color = TextMuted) },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = fieldColors()
+                )
+
+                Text("Categoría:", color = TextMuted, fontSize = 12.sp)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    CATEGORIES.forEach { cat ->
+                        val selected = category == cat
+                        Box(
+                            Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (selected) accent else Slate.copy(alpha = 0.4f))
+                                .clickable { category = cat }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(cat, color = if (selected) Ink else TextMain, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
 
                 Text("Días de repetición:", color = TextMuted, fontSize = 12.sp)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -1239,7 +1324,7 @@ private fun AddHabitDialog(onDismiss: () -> Unit, onAdd: (String, List<Int>, Str
             }
         },
         confirmButton = {
-            TextButton(onClick = { onAdd(text, selectedDays.toList(), category) }, enabled = text.isNotBlank()) {
+            TextButton(onClick = { onAdd(text, selectedDays.toList(), category, minVersion) }, enabled = text.isNotBlank()) {
                 Text("Agregar", color = if (text.isNotBlank()) accent else TextMuted)
             }
         },
@@ -1250,7 +1335,7 @@ private fun AddHabitDialog(onDismiss: () -> Unit, onAdd: (String, List<Int>, Str
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pantalla de Enfoque
+// Pantalla de Enfoque (Pomodoro)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -1264,11 +1349,7 @@ private fun FocusScreen(store: StarforgeStore) {
 
     ScreenColumn {
         ScreenTitle("Enfoque")
-        Text(
-            "Elige una duración y bloquea el ruido. Cada minuto enfocado suma $XP_PER_FOCUS_MINUTE XP.",
-            color = TextMuted,
-            fontSize = 14.sp
-        )
+        Text("Bloquea el ruido y entra en estado de flujo. Cada minuto suma $XP_PER_FOCUS_MINUTE XP a tu especialidad de Mente.", color = TextMuted, fontSize = 14.sp)
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             for (m in FOCUS_OPTIONS) {
@@ -1283,11 +1364,7 @@ private fun FocusScreen(store: StarforgeStore) {
                         .padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        "$m min",
-                        color = if (selected) Ink else TextMain,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Text("$m min", color = if (selected) Ink else TextMain, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -1295,17 +1372,8 @@ private fun FocusScreen(store: StarforgeStore) {
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             Ring(progress = progress, color = accent, diameter = 250.dp, stroke = 14.dp) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        "%02d:%02d".format(secs / 60, secs % 60),
-                        color = TextMain,
-                        fontSize = 52.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        if (running) "Enfocado…" else "Listo para empezar",
-                        color = TextMuted,
-                        fontSize = 13.sp
-                    )
+                    Text("%02d:%02d".format(secs / 60, secs % 60), color = TextMain, fontSize = 52.sp, fontWeight = FontWeight.Bold)
+                    Text(if (running) "Enfocado…" else "Listo para empezar", color = TextMuted, fontSize = 13.sp)
                 }
             }
         }
@@ -1319,30 +1387,18 @@ private fun FocusScreen(store: StarforgeStore) {
             ),
             modifier = Modifier.fillMaxWidth().height(56.dp)
         ) {
-            Text(
-                if (running) "Cancelar sesión" else "Iniciar enfoque",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text(if (running) "Cancelar sesión" else "Iniciar enfoque", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
 
         AppCard {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
                     Text("Hoy", color = TextMuted, fontSize = 12.sp)
-                    Text(
-                        "${store.sessionsOn(today)} sesiones · ${store.minutesOn(today)} min",
-                        color = TextMain,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Text("${store.sessionsOn(today)} sesiones · ${store.minutesOn(today)} min", color = TextMain, fontWeight = FontWeight.SemiBold)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text("Total", color = TextMuted, fontSize = 12.sp)
-                    Text(
-                        "${store.totalSessions()} sesiones · ${store.totalFocusMinutes()} min",
-                        color = TextMain,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Text("${store.totalSessions()} sesiones · ${store.totalFocusMinutes()} min", color = TextMain, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -1350,7 +1406,7 @@ private fun FocusScreen(store: StarforgeStore) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pantalla de Perfil
+// Pantalla de Perfil (Con Forge Path / Árbol de Evolución)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -1359,46 +1415,32 @@ private fun ProfileScreen(store: StarforgeStore) {
     var confirmReset by remember { mutableStateOf(false) }
 
     ScreenColumn {
-        ScreenTitle("Perfil")
+        ScreenTitle("Perfil y Forge Path")
 
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(
-                Modifier.size(88.dp).clip(CircleShape).background(accent),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    store.userName.trim().firstOrNull()?.uppercase() ?: "S",
-                    color = Ink,
-                    fontSize = 38.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            Box(Modifier.size(88.dp).clip(CircleShape).background(accent), contentAlignment = Alignment.Center) {
+                Text(store.userName.trim().firstOrNull()?.uppercase() ?: "S", color = Ink, fontSize = 38.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(10.dp))
-            Text(
-                store.userName.ifBlank { "Forjador" },
-                color = TextMain,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                "Nivel ${store.level} · ${store.xp} XP",
-                color = TextMuted,
-                fontSize = 14.sp
-            )
+            Text(store.userName.ifBlank { "Forjador" }, color = TextMain, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Nivel General ${store.level} · ${store.xp} XP", color = TextMuted, fontSize = 14.sp)
         }
 
+        // Forge Path: Especializaciones
         AppCard {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Progreso al nivel ${store.level + 1}", color = TextMain, fontWeight = FontWeight.SemiBold)
-                Text("${store.xpInLevel}/$XP_PER_LEVEL", color = TextMuted, fontSize = 13.sp)
-            }
-            Spacer(Modifier.height(10.dp))
-            BarProgress(store.xpInLevel / XP_PER_LEVEL.toFloat(), accent)
-            Spacer(Modifier.height(14.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text("🔥 Racha: ${store.currentStreak()} d", color = TextMain, fontSize = 13.sp)
-                Text("🏅 Mejor: ${store.bestStreak()} d", color = TextMain, fontSize = 13.sp)
-                Text("🏆 ${store.unlocked.size}/${ACHIEVEMENTS.size}", color = TextMain, fontSize = 13.sp)
+            Text("⚡ Árbol de Evolución (Forge Path)", color = TextMain, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Spacer(Modifier.height(12.dp))
+            for (cat in CATEGORIES) {
+                val catLevel = store.categoryLevel(cat)
+                val catXpInLvl = store.categoryXpInLevel(cat)
+                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(cat, color = TextMain, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Text("Nivel $catLevel ($catXpInLvl/100 XP)", color = TextMuted, fontSize = 12.sp)
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    BarProgress(catXpInLvl / 100f, accent, height = 6.dp)
+                }
             }
         }
 
@@ -1490,12 +1532,7 @@ private fun ProfileScreen(store: StarforgeStore) {
             onDismissRequest = { confirmReset = false },
             containerColor = Navy,
             title = { Text("Reiniciar progreso", color = TextMain) },
-            text = {
-                Text(
-                    "Se borrarán hábitos, notas, historial, XP y logros. Esta acción no se puede deshacer.",
-                    color = TextMuted
-                )
-            },
+            text = { Text("Se borrarán hábitos, notas, historial, XP y logros. Esta acción no se puede deshacer.", color = TextMuted) },
             confirmButton = {
                 TextButton(onClick = {
                     store.resetProgress()
