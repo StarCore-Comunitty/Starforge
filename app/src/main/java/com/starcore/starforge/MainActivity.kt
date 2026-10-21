@@ -4,8 +4,6 @@ package com.starcore.starforge
  * Starforge — disciplina, hábitos y superación personal.
  *
  * Una sola actividad · Jetpack Compose + Material 3 · SharedPreferences.
- *
- * Pestañas: Inicio (con Progreso, Estadísticas y Notas) · Hábitos · Enfoque · Perfil
  */
 
 import android.content.Context
@@ -30,7 +28,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -46,7 +43,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -60,7 +56,7 @@ import java.time.YearMonth
 import kotlin.math.roundToInt
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Paleta y temas de acento
+// Paleta y Temas de Acento
 // ─────────────────────────────────────────────────────────────────────────────
 
 private val Ink = Color(0xFF0F1115)
@@ -109,10 +105,6 @@ private const val DEFAULT_MISSION = "Forjar disciplina cada día y convertirme e
 private val FOCUS_OPTIONS = listOf(15, 25, 45, 60)
 private val DAYS_SHORT = listOf("L", "M", "X", "J", "V", "S", "D")
 private val DAYS_FULL = listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")
-private val MONTHS_ES = listOf(
-    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-)
 private val QUOTES = listOf(
     "Cada día que cumples contigo mismo forja a la persona que quieres ser.",
     "La constancia silenciosa vence al talento que se distrae.",
@@ -127,7 +119,13 @@ private val QUOTES = listOf(
 // Modelos
 // ─────────────────────────────────────────────────────────────────────────────
 
-data class Habit(val id: Long, val name: String, val created: String)
+data class Habit(
+    val id: Long,
+    val name: String,
+    val created: String,
+    val days: List<Int> = listOf(1, 2, 3, 4, 5, 6, 7), // 1=Lunes a 7=Domingo
+    val category: String = "General"
+)
 
 enum class BadgeCategory(val label: String, val emoji: String, val unit: String) {
     STREAK("Rachas", "🔥", "días"),
@@ -220,9 +218,9 @@ class StarforgeStore(private val prefs: SharedPreferences) {
             habits.addAll(loadHabits())
         } else {
             val today = LocalDate.now().toString()
-            habits.add(Habit(1L, "Beber 2 litros de agua", today))
-            habits.add(Habit(2L, "Leer 10 páginas", today))
-            habits.add(Habit(3L, "Ejercicio 20 minutos", today))
+            habits.add(Habit(1L, "Beber 2 litros de agua", today, listOf(1,2,3,4,5,6,7), "Salud"))
+            habits.add(Habit(2L, "Leer 10 páginas", today, listOf(1,2,3,4,5,6,7), "Mente"))
+            habits.add(Habit(3L, "Ejercicio 20 minutos", today, listOf(1,3,5), "Cuerpo"))
             saveHabits()
         }
         completions.putAll(loadCompletions())
@@ -257,9 +255,11 @@ class StarforgeStore(private val prefs: SharedPreferences) {
         prefs.edit().putString(K_THEME, value.name).apply()
     }
 
+    // Filtra hábitos creados y que correspondan al día de la semana (1=Lunes .. 7=Domingo)
     fun habitsFor(date: LocalDate): List<Habit> {
         val key = date.toString()
-        return habits.filter { it.created <= key }
+        val dayOfWeek = date.dayOfWeek.value
+        return habits.filter { it.created <= key && dayOfWeek in it.days }
     }
 
     fun isDone(habitId: Long, date: LocalDate): Boolean =
@@ -281,12 +281,12 @@ class StarforgeStore(private val prefs: SharedPreferences) {
         saveNotes()
     }
 
-    fun addHabit(name: String) {
+    fun addHabit(name: String, selectedDays: List<Int>, category: String) {
         val clean = name.trim().take(40)
         if (clean.isEmpty()) return
         var id = System.currentTimeMillis()
         while (habits.any { it.id == id }) id++
-        habits.add(Habit(id, clean, LocalDate.now().toString()))
+        habits.add(Habit(id, clean, LocalDate.now().toString(), selectedDays, category))
         saveHabits()
     }
 
@@ -432,6 +432,16 @@ class StarforgeStore(private val prefs: SharedPreferences) {
         return if (scheduledTotal > 0) (doneTotal * 100f / scheduledTotal).roundToInt() else 0
     }
 
+    fun exportData(): String {
+        val obj = JSONObject()
+        obj.put(K_NAME, userName)
+        obj.put(K_XP, xp)
+        obj.put(K_HABITS, prefs.getString(K_HABITS, "[]"))
+        obj.put(K_COMPLETIONS, prefs.getString(K_COMPLETIONS, "{}"))
+        obj.put(K_NOTES, prefs.getString(K_NOTES, "{}"))
+        return obj.toString()
+    }
+
     fun resetProgress() {
         habits.clear()
         completions.clear()
@@ -464,11 +474,20 @@ class StarforgeStore(private val prefs: SharedPreferences) {
             val list = ArrayList<Habit>()
             for (i in 0 until arr.length()) {
                 val o = arr.getJSONObject(i)
+                val daysArr = o.optJSONArray("days")
+                val daysList = ArrayList<Int>()
+                if (daysArr != null) {
+                    for (j in 0 until daysArr.length()) daysList.add(daysArr.getInt(j))
+                } else {
+                    daysList.addAll(listOf(1, 2, 3, 4, 5, 6, 7))
+                }
                 list.add(
                     Habit(
                         id = o.getLong("id"),
                         name = o.getString("name"),
-                        created = o.optString("created", LocalDate.now().toString())
+                        created = o.optString("created", LocalDate.now().toString()),
+                        days = daysList,
+                        category = o.optString("category", "General")
                     )
                 )
             }
@@ -539,7 +558,13 @@ class StarforgeStore(private val prefs: SharedPreferences) {
     private fun saveHabits() {
         val arr = JSONArray()
         for (h in habits) {
-            arr.put(JSONObject().put("id", h.id).put("name", h.name).put("created", h.created))
+            val o = JSONObject()
+                .put("id", h.id)
+                .put("name", h.name)
+                .put("created", h.created)
+                .put("days", JSONArray(h.days))
+                .put("category", h.category)
+            arr.put(o)
         }
         prefs.edit().putString(K_HABITS, arr.toString()).apply()
     }
@@ -577,7 +602,7 @@ class StarforgeStore(private val prefs: SharedPreferences) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Actividad principal
+// Actividad Principal
 // ─────────────────────────────────────────────────────────────────────────────
 
 class MainActivity : ComponentActivity() {
@@ -613,7 +638,7 @@ fun StarforgeTheme(accent: Color, content: @Composable () -> Unit) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Navegación (4 pestañas: Inicio, Hábitos, Enfoque, Perfil)
+// Navegación (4 Pestañas)
 // ─────────────────────────────────────────────────────────────────────────────
 
 private data class TabItem(val label: String, val icon: ImageVector)
@@ -705,8 +730,8 @@ fun StarforgeApp(store: StarforgeStore) {
         if (showAdd) {
             AddHabitDialog(
                 onDismiss = { showAdd = false },
-                onAdd = {
-                    store.addHabit(it)
+                onAdd = { name, days, cat ->
+                    store.addHabit(name, days, cat)
                     showAdd = false
                 }
             )
@@ -829,6 +854,11 @@ private fun fieldColors() = OutlinedTextFieldDefaults.colors(
 private fun longDate(date: LocalDate): String =
     "${DAYS_FULL[date.dayOfWeek.value - 1]} ${date.dayOfMonth} de ${MONTHS_ES[date.monthValue - 1].lowercase()}"
 
+private val MONTHS_ES = listOf(
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+)
+
 @Composable
 private fun WeekStrip(store: StarforgeStore) {
     val accent = MaterialTheme.colorScheme.primary
@@ -880,7 +910,7 @@ private fun WeekStrip(store: StarforgeStore) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pantalla de Inicio (Progreso, Estadísticas, Notas y Frase del Día)
+// Pantalla de Inicio
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -910,7 +940,6 @@ private fun HomeScreen(store: StarforgeStore) {
 
         WeekStrip(store)
 
-        // Tarjeta principal de Progreso del día
         AppCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Ring(progress = progress, color = accent, diameter = 96.dp, stroke = 10.dp) {
@@ -937,7 +966,7 @@ private fun HomeScreen(store: StarforgeStore) {
                     Spacer(Modifier.height(6.dp))
                     Text(
                         when {
-                            dayHabits.isEmpty() -> "Agrega tu primer hábito."
+                            dayHabits.isEmpty() -> "No hay hábitos este día."
                             done == dayHabits.size -> "¡Día completo! 🔥"
                             else -> "Te faltan ${dayHabits.size - done} para cerrar."
                         },
@@ -948,7 +977,6 @@ private fun HomeScreen(store: StarforgeStore) {
             }
         }
 
-        // Resumen rápido de Estadísticas en Inicio
         AppCard {
             Text("📊 Resumen de Rendimiento", color = TextMain, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
             Spacer(Modifier.height(12.dp))
@@ -956,22 +984,21 @@ private fun HomeScreen(store: StarforgeStore) {
                 Column(Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).background(Ink.copy(alpha = 0.4f)).padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("🔥 Racha", color = TextMuted, fontSize = 11.sp)
                     Spacer(Modifier.height(4.dp))
-                    Text("$streak días", color = TextMain, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("$streak días", color = TextMain, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
                 Column(Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).background(Ink.copy(alpha = 0.4f)).padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("🎯 Éxito Global", color = TextMuted, fontSize = 11.sp)
+                    Text("🎯 Éxito", color = TextMuted, fontSize = 11.sp)
                     Spacer(Modifier.height(4.dp))
-                    Text("$globalSuccess%", color = accent, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("$globalSuccess%", color = accent, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
                 Column(Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).background(Ink.copy(alpha = 0.4f)).padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("🏆 Logros", color = TextMuted, fontSize = 11.sp)
                     Spacer(Modifier.height(4.dp))
-                    Text("${store.unlocked.size}/${ACHIEVEMENTS.size}", color = TextMain, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("${store.unlocked.size}/${ACHIEVEMENTS.size}", color = TextMain, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
             }
         }
 
-        // Campo de Notas / Reflexión del Día
         AppCard {
             Text("📝 Nota o Reflexión", color = TextMain, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
             Spacer(Modifier.height(8.dp))
@@ -989,7 +1016,6 @@ private fun HomeScreen(store: StarforgeStore) {
             )
         }
 
-        // Frase del día
         Box(
             Modifier
                 .fillMaxWidth()
@@ -1009,7 +1035,6 @@ private fun HomeScreen(store: StarforgeStore) {
             }
         }
 
-        // Barra de Nivel y XP
         AppCard {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Nivel ${store.level}", color = TextMain, fontWeight = FontWeight.Bold, fontSize = 16.sp)
@@ -1022,7 +1047,7 @@ private fun HomeScreen(store: StarforgeStore) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pantalla de Hábitos (Gestión directa y limpia)
+// Pantalla de Hábitos
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -1068,7 +1093,7 @@ private fun HabitsScreen(store: StarforgeStore) {
         if (list.isEmpty()) {
             AppCard {
                 Text(
-                    "No hay hábitos para este día. Toca el botón + para agregar uno.",
+                    "No hay hábitos programados para este día. Toca + para agregar uno.",
                     color = TextMuted,
                     fontSize = 14.sp
                 )
@@ -1129,7 +1154,7 @@ private fun HabitRow(
             .clip(RoundedCornerShape(20.dp))
             .background(Navy)
             .clickable(enabled = enabled) { onToggle() }
-            .padding(start = 16.dp, top = 6.dp, bottom = 6.dp, end = 4.dp),
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -1145,13 +1170,21 @@ private fun HabitRow(
             }
         }
         Spacer(Modifier.width(14.dp))
-        Text(
-            habit.name,
-            modifier = Modifier.weight(1f),
-            color = if (done) TextMuted else TextMain,
-            fontSize = 16.sp,
-            textDecoration = if (done) TextDecoration.LineThrough else null
-        )
+        Column(Modifier.weight(1f)) {
+            Text(
+                habit.name,
+                color = if (done) TextMuted else TextMain,
+                fontSize = 16.sp,
+                textDecoration = if (done) TextDecoration.LineThrough else null
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                habit.category,
+                color = accent.copy(alpha = 0.8f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
         IconButton(onClick = onDelete) {
             Icon(Icons.Filled.Delete, contentDescription = "Eliminar", tint = TextMuted)
         }
@@ -1159,25 +1192,54 @@ private fun HabitRow(
 }
 
 @Composable
-private fun AddHabitDialog(onDismiss: () -> Unit, onAdd: (String) -> Unit) {
+private fun AddHabitDialog(onDismiss: () -> Unit, onAdd: (String, List<Int>, String) -> Unit) {
     var text by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf("Salud") }
+    val selectedDays = remember { mutableStateListOf(1, 2, 3, 4, 5, 6, 7) }
     val accent = MaterialTheme.colorScheme.primary
+
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Navy,
-        title = { Text("Nuevo hábito", color = TextMain) },
+        title = { Text("Nuevo hábito con frecuencia", color = TextMain) },
         text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { if (it.length <= 40) text = it },
-                singleLine = true,
-                placeholder = { Text("Ej. Meditar 10 minutos", color = TextMuted) },
-                shape = RoundedCornerShape(16.dp),
-                colors = fieldColors()
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { if (it.length <= 40) text = it },
+                    singleLine = true,
+                    placeholder = { Text("Ej. Entrenar fuerte", color = TextMuted) },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = fieldColors()
+                )
+
+                Text("Días de repetición:", color = TextMuted, fontSize = 12.sp)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    DAYS_SHORT.forEachIndexed { index, dayLabel ->
+                        val dayNum = index + 1
+                        val active = dayNum in selectedDays
+                        Box(
+                            Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(if (active) accent else Slate.copy(alpha = 0.5f))
+                                .clickable {
+                                    if (active) {
+                                        if (selectedDays.size > 1) selectedDays.remove(dayNum)
+                                    } else {
+                                        selectedDays.add(dayNum)
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(dayLabel, color = if (active) Ink else TextMain, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
         },
         confirmButton = {
-            TextButton(onClick = { onAdd(text) }, enabled = text.isNotBlank()) {
+            TextButton(onClick = { onAdd(text, selectedDays.toList(), category) }, enabled = text.isNotBlank()) {
                 Text("Agregar", color = if (text.isNotBlank()) accent else TextMuted)
             }
         },
